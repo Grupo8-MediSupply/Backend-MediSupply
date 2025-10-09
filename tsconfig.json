@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/perfiles-e2e"
+    },
+    {
+      "path": "./apps/perfiles"
+    },
+    {
+      "path": "./libs/database"
+    },
+    {
+      "path": "./libs/config-env"
+    },
+    {
+      "path": "./libs/shared"
+    }
+  ]
+}

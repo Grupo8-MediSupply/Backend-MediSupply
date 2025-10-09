@@ -1,0 +1,26 @@
+{
+  "name": "@medi-supply/perfiles-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@medi-supply/perfiles"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/perfiles-e2e/jest.config.ts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "@medi-supply/perfiles:build",
+          "@medi-supply/perfiles:serve"
+        ]
+      }
+    }
+  }
+}
