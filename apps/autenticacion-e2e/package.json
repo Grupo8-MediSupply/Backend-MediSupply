@@ -1,0 +1,26 @@
+{
+  "name": "@medi-supply/autenticacion-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@medi-supply/autenticacion"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/autenticacion-e2e/jest.config.ts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "@medi-supply/autenticacion:build",
+          "@medi-supply/autenticacion:serve"
+        ]
+      }
+    }
+  }
+}
