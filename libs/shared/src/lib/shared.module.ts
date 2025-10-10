@@ -2,11 +2,14 @@ import { Global, Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { AllExceptionsFilter } from './filters/http-exceptions.filter';
 import { ResponseInterceptor } from './interceptors/response.interceptor';
+import { HttpManagerService } from './http/http-manager.service';
+import { HttpModule } from '@nestjs/axios';
 
 @Global()
 @Module({
-  controllers: [],
+  imports: [HttpModule],
   providers: [
+    HttpManagerService,
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter, // <-- se registra globalmente
@@ -17,6 +20,7 @@ import { ResponseInterceptor } from './interceptors/response.interceptor';
     },
   ],
   exports: [
+    HttpManagerService,
   ],
 })
 export class MediSupplySharedModule {}
