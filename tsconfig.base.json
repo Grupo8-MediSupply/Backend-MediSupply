@@ -18,9 +18,7 @@
     "target": "es2022",
     "customConditions": ["@medi-supply/source"],
     "baseUrl": ".",
-    "paths": {
-
-    },
+    "paths": {},
     "rootDir": "."
   }
 }
