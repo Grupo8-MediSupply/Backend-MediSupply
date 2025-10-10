@@ -19,9 +19,7 @@
     "customConditions": ["@medi-supply/source"],
     "baseUrl": ".",
     "paths": {
-      "@medi-supply/config-env": ["libs/config-env/src/index.ts"],
-      "@medi-supply/database": ["libs/database/src/index.ts"],
-      "@medi-supply/shared": ["libs/shared/src/index.ts"]
+
     },
     "rootDir": "."
   }

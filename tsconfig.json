@@ -29,6 +29,12 @@
     },
     {
       "path": "./apps/inventario"
+    },
+    {
+      "path": "./libs/domain/core"
+    },
+    {
+      "path": "./libs/domain/perfiles-dm"
     }
   ]
 }
