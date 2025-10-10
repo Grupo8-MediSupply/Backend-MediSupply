@@ -52,7 +52,11 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/perfiles-e2e/**/*", "apps/autenticacion-e2e/**/*"]
+      "exclude": [
+        "apps/perfiles-e2e/**/*",
+        "apps/autenticacion-e2e/**/*",
+        "apps/inventario-e2e/**/*"
+      ]
     },
     {
       "plugin": "@nx/js/typescript",

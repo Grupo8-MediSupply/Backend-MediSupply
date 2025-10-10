@@ -23,6 +23,12 @@
     },
     {
       "path": "./apps/autenticacion"
+    },
+    {
+      "path": "./apps/inventario-e2e"
+    },
+    {
+      "path": "./apps/inventario"
     }
   ]
 }

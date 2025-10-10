@@ -1,0 +1,26 @@
+{
+  "name": "@medi-supply/inventario-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@medi-supply/inventario"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/inventario-e2e/jest.config.ts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "@medi-supply/inventario:build",
+          "@medi-supply/inventario:serve"
+        ]
+      }
+    }
+  }
+}
