@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { DomainException } from '@medi-supply/core'; 
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -17,31 +18,48 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<FastifyRequest>();
     const reply = ctx.getResponse<FastifyReply>();
 
-    let status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let status: number;
+    let message: string | object;
+    let code: string | undefined;
+    let context: Record<string, any> | undefined;
 
-    let message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : 'Internal server error';
+    // 🧩 Caso 1: HttpException de NestJS
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      message = exception.getResponse();
 
-    // Si el mensaje viene en objeto tipo { message: '...' }
-    if (typeof message === 'object' && (message as any).message) {
-      message = (message as any).message;
+      if (typeof message === 'object' && (message as any).message) {
+        message = (message as any).message;
+      }
+    }
+
+    // 🧩 Caso 2: DomainException (de tu capa de dominio)
+    else if (exception instanceof DomainException) {
+      status = HttpStatus.BAD_REQUEST; // o HttpStatus.UNPROCESSABLE_ENTITY si lo prefieres
+      message = exception.message;
+      code = exception.code;
+      context = exception.context;
+    }
+
+    // 🧩 Caso 3: Excepción desconocida
+    else {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = 'Internal server error';
     }
 
     const errorResponse = {
       success: false,
       timestamp: new Date().toISOString(),
+      path: request.url,
       status,
       message,
+      ...(code && { code }),
+      ...(context && { context }),
     };
 
-    // Log detallado
+    // 🧾 Log más detallado
     this.logger.error(
-      `❌ ${request.method} ${request.url}`,
+      `❌ ${request.method} ${request.url} → ${message}`,
       JSON.stringify(exception),
     );
 

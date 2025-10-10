@@ -1,7 +1,8 @@
+import { Nombre } from '@medi-supply/core';
 import { Usuario } from './usuario.entity';
 
 export class Vendedor extends Usuario {
-  readonly nombre: string;
+  readonly nombre: Nombre;
   readonly territorio?: string;
 
   constructor(props: {
@@ -21,7 +22,19 @@ export class Vendedor extends Usuario {
       password: props.password,
     });
 
-    this.nombre = props.nombre;
+    this.nombre = new Nombre(props.nombre);
     this.territorio = props.territorio;
+  }
+
+  toPrimitives() {
+    return {
+      id: this.id,
+      email: this.email.Value,
+      rolId: this.rolId,
+      paisId: this.paisId,
+      nombre: this.nombre.Value,
+      territorio: this.territorio,
+      password: this.password,
+    };
   }
 }

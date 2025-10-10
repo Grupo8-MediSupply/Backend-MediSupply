@@ -1,4 +1,4 @@
-import { BaseEntity } from '@medi-supply/core';
+import { BaseEntity, Email } from '@medi-supply/core';
 
 
 interface UsuarioProps {
@@ -12,7 +12,7 @@ interface UsuarioProps {
 }
 
 export class Usuario extends BaseEntity<string> {
-  readonly email: string;
+  readonly email: Email;
   readonly rolId: number;
   readonly paisId: number;
   readonly password: string;
@@ -24,7 +24,7 @@ export class Usuario extends BaseEntity<string> {
       updatedAt: props.updatedAt,
     });
 
-    this.email = props.email;
+    this.email = new Email(props.email);
     this.rolId = props.rolId;
     this.paisId = props.paisId;
     this.password = props.password;

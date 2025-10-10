@@ -19,7 +19,7 @@ export class VendedorRepository implements IVendedorRepository {
         // Inserta el usuario y captura el ID generado por la DB
         const [user] = await trx('usuario')
           .insert({
-            email: vendedor.email,
+            email: vendedor.email.Value,
             rol_id: vendedor.rolId,
             pais_id: vendedor.paisId,
             password_hash: vendedor.password,
@@ -31,14 +31,14 @@ export class VendedorRepository implements IVendedorRepository {
         // Inserta el vendedor usando el mismo ID
         await trx('vendedor').insert({
           id: createdUserId,
-          nombre: vendedor.nombre,
+          nombre: vendedor.nombre.Value,
           territorio: vendedor.territorio ?? null,
         });
       });
 
       // Devuelve el vendedor con el ID asignado por la base
       return new Vendedor({
-        ...vendedor,
+        ...vendedor.toPrimitives(),
         id: createdUserId!,
       });
     } catch (error) {
