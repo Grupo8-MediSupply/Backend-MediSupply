@@ -37,10 +37,16 @@ export class VendedorRepository implements IVendedorRepository {
       });
 
       // Devuelve el vendedor con el ID asignado por la base
-      return new Vendedor({
-        ...vendedor.toPrimitives(),
+      const vendedorCreado = new Vendedor({
+        email: vendedor.email.Value,
+        rolId: vendedor.rolId,
+        paisId: vendedor.paisId,
+        password: vendedor.password,
+        nombre: vendedor.nombre.Value,
+        territorio: vendedor.territorio,
         id: createdUserId!,
       });
+      return vendedorCreado;
     } catch (error) {
       console.error('❌ Error al crear vendedor:', error);
 
