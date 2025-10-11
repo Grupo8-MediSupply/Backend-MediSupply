@@ -16,7 +16,7 @@ jobs:
       - name: 📦 Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0
 
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
@@ -24,19 +24,38 @@ jobs:
           node-version: 22.17
           cache: 'npm'
 
+      # 🚫 Solo permite merges desde feature/* o fix/*
+      - name: 🚫 Prevent merge if branch name is invalid
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          echo "🔍 Validando rama origen: $BRANCH_NAME"
+          if [[ ! "$BRANCH_NAME" =~ ^(feature|fix)/.*$ ]]; then
+            echo "❌ Solo se permiten merges desde ramas 'feature/*' o 'fix/*'"
+            exit 1
+          fi
+
       - name: 📥 Install dependencies
         run: npm ci
 
-      # ✅ Ejecuta SOLO los proyectos afectados por el cambio (más eficiente)
+      # ✅ Ejecuta SOLO los proyectos afectados con cobertura
       - name: 🧪 Run affected tests with coverage
         run: npx nx affected --target=test --base=origin/develop --head=HEAD --coverage
 
-      # 🔍 (Opcional) Subir reportes de cobertura al summary de GitHub
-      - name: 📊 Show coverage summary
-        if: always()
-        run: |
-          echo "---- Coverage summary ----"
-          find coverage -name 'lcov-report' -type d | while read d; do
-            echo "Report for: $d"
-          done
-          echo "--------------------------"
+      # ✅ Aprueba el PR automáticamente si todo pasa
+      - name: ✅ Approve Pull Request
+        if: success() && github.event_name == 'pull_request'
+        uses: peter-evans/approve-pull-request@v3
+        with:
+          token: ${{ secrets.PAT_GITHUB }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          message: '✅ Tests passed successfully. PR approved automatically.'
+
+      # 🚀 Fusiona el PR automáticamente después de la aprobación
+      - name: 🚀 Merge Pull Request
+        if: success() && github.event_name == 'pull_request'
+        uses: peter-evans/merge-pull-request@v3
+        with:
+          token: ${{ secrets.PAT_GITHUB }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash
+          commit-title: 'Auto-merged after successful tests'
