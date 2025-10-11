@@ -41,21 +41,16 @@ jobs:
       - name: 🧪 Run affected tests with coverage
         run: npx nx affected --target=test --base=origin/develop --head=HEAD --coverage
 
-      # ✅ Aprueba el PR automáticamente si todo pasa
-      - name: ✅ Approve Pull Request
+      # ✅ Aprueba automáticamente el PR si los tests pasan
+      - name: ✅ Auto-approve pull request
         if: success() && github.event_name == 'pull_request'
-        uses: peter-evans/approve-pull-request@v3
+        uses: hmarr/auto-approve-action@v4
         with:
-          token: ${{ secrets.PAT_GITHUB }}
-          pull-request-number: ${{ github.event.pull_request.number }}
-          message: '✅ Tests passed successfully. PR approved automatically.'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 🚀 Fusiona el PR automáticamente después de la aprobación
-      - name: 🚀 Merge Pull Request
+      # 🔀 (Opcional) Hacer merge automático después de aprobar
+      - name: 🔀 Auto-merge pull request
         if: success() && github.event_name == 'pull_request'
-        uses: peter-evans/merge-pull-request@v3
-        with:
-          token: ${{ secrets.PAT_GITHUB }}
-          pull-request-number: ${{ github.event.pull_request.number }}
-          merge-method: squash
-          commit-title: 'Auto-merged after successful tests'
+        uses: pascalgn/automerge-action@v0.15.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
