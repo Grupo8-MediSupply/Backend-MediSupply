@@ -1,0 +1,20 @@
+# Nx & Node
+node_modules
+dist
+tmp
+out-tsc
+
+# Git
+.git
+.gitignore
+
+# OS
+.DS_Store
+
+# IDE
+.idea
+.vscode
+
+# Env
+.env
+.env.*
