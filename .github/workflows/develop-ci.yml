@@ -41,6 +41,13 @@ jobs:
       - name: 🧪 Run affected tests with coverage
         run: npx nx affected --target=test --base=origin/develop --head=HEAD --coverage
 
+      - name: 🏷️ Add automerge label
+        if: success() && github.event_name == 'pull_request'
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: automerge
+
       # ✅ Aprueba automáticamente el PR si los tests pasan
       - name: ✅ Auto-approve pull request
         if: success() && github.event_name == 'pull_request'
