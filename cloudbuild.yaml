@@ -66,25 +66,34 @@ steps:
     args:
       - '-c'
       - |
-        # ... (check for file content)
-        
+        if [ ! -s ./affected_apps.txt ]; then
+          echo "No affected apps found in file. Skipping build/push."
+          exit 0
+        fi
+
+        echo "Starting build and push process..."
+
         cat ./affected_apps.txt | while read app_name_full; do
           if [ -z "$app_name_full" ]; then continue; fi
 
-          # ✅ Limpieza para RUTA y NOMBRE DE IMAGEN/SERVICIO
+          # --- ✅ CORRECCIÓN CLAVE: Obtener el nombre de la carpeta (sin scope de Nx)
+          # Ejemplo: de "@medi-supply/perfiles" a "perfiles"
           app_folder_name=$(echo "$app_name_full" | sed 's|^@.*/||')
           
+          # Crear nombre de imagen y tag
           image_base_name="medi-supply-$app_folder_name"
           image_tag=$(echo "$image_base_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
 
           echo "🐳 Building and pushing $app_folder_name -> $image_tag..."
 
-          # Usa $app_folder_name para la ruta del Dockerfile (apps/perfiles/Dockerfile)
-          # Usa $app_name_full para el ARG dentro del Dockerfile (@medi-supply/perfiles)
+          # CRÍTICO: Pasamos DOS argumentos al Dockerfile:
+          # 1. APP_NAME: Nombre completo de Nx (ej. @medi-supply/perfiles)
+          # 2. APP_FOLDER_NAME: Nombre limpio para la ruta (ej. perfiles)
           docker build \
             -f apps/$app_folder_name/Dockerfile \
             -t gcr.io/$PROJECT_ID/$image_tag \
-            --build-arg APP_NAME=$app_name_full \
+            --build-arg APP_NAME=$app_name_full \ 
+            --build-arg APP_FOLDER_NAME=$app_folder_name \ # 🎯 ARGUMENTO NUEVO Y CRÍTICO
             .
 
           docker push gcr.io/$PROJECT_ID/$image_tag
