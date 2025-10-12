@@ -18,8 +18,8 @@ export class VendedoresService {
       email: createVendedorDto.email,
       territorio: createVendedorDto.territorio,
       nombre: createVendedorDto.nombre,
-      rolId: 1,
-      paisId: 1,
+      rolId: 20,
+      paisId: 10,
       password: 'deploy_32316571$',
     };
     const vendedor = new Vendedor(props);
