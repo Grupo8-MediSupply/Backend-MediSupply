@@ -1,0 +1,43 @@
+steps:
+  # 1. Instalar Node y dependencias
+  - name: 'node:22.17-bullseye'
+    id: 'Install dependencies'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npm ci
+
+  # 2. Detectar apps afectadas
+  - name: 'node:22.17-bullseye'
+    id: 'Affected apps'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Detecting affected projects..."
+        affected=$(npx nx print-affected --target=build --base=origin/main~1 --head=HEAD --select=projects)
+        echo "AFFECTED_APPS=$affected" >> $BASH_ENV
+  # Importante: Cloud Build recarga $BASH_ENV automáticamente en pasos siguientes
+
+  # 3. Construir y desplegar solo apps afectadas
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build and deploy apps'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Affected apps: $AFFECTED_APPS"
+        for app in $AFFECTED_APPS; do
+          echo "🚀 Building $app..."
+          docker build -t gcr.io/$PROJECT_ID/$app ./apps/$app
+          docker push gcr.io/$PROJECT_ID/$app
+          echo "Deploying $app to Cloud Run..."
+          gcloud run deploy $app \
+            --image=gcr.io/$PROJECT_ID/$app \
+            --platform=managed \
+            --region=us-central1 \
+            --quiet
+
+# Opcional: puedes especificar timeout y variables de entorno globales
+timeout: "1200s"  # 20 minutos, ajusta según tu build
