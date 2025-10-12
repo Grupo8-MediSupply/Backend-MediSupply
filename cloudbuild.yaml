@@ -7,6 +7,8 @@ steps:
       - '-c'
       - |
         echo "Deepening Git history to allow comparison with HEAD~1..."
+        # El valor --depth=2 asegura que el commit actual (HEAD) y el anterior (HEAD~1) estén disponibles.
+        # Esto permite a Nx realizar la comparación.
         git fetch origin $(git rev-parse HEAD) --depth=2
 
   # 2️⃣ Instalar Node y dependencias (Solo npm ci)
@@ -17,6 +19,7 @@ steps:
       - '-c'
       - |
         echo "Installing dependencies..."
+        # Usa 'npm ci' para instalaciones limpias en CI/CD
         npm ci
     waitFor: ['Deepen Git History']
 
@@ -27,75 +30,104 @@ steps:
     args:
       - '-c'
       - |
+        # Configurar pipefail para que si cualquier comando en el pipe falla, el paso falle inmediatamente.
+        set -e -o pipefail
+
         echo "Detecting affected projects using modern Nx command..."
+        
+        # ⚠️ INSTALACIÓN CRÍTICA: Instalar jq en este mismo paso antes de usarlo.
         apt-get update && apt-get install -y jq
+        
+        # Nuevo comando Nx (post-v19):
+        # 1. Obtiene los proyectos afectados.
+        # 2. Usa jq para obtener la lista plana de nombres.
+        # 3. Usa grep -v para EXCLUIR cualquier nombre que termine con '-e2e'.
         npx nx show projects --affected --json --target=build --base=HEAD~1 --head=HEAD --type=app | \
           jq -r '.[]' | grep -v -- "-e2e$" > ./affected_apps.txt
-
+        
+        # Después de que el pipe finaliza con éxito, podemos verificar el archivo.
+        
+        # Verificar si el archivo está vacío. El flag -s verifica si el archivo existe y no está vacío.
         if [ ! -s ./affected_apps.txt ]; then
           echo "No apps affected. Exiting this step."
+          # Si no hay apps, creamos un archivo vacío para que los siguientes pasos lo ignoren.
           echo "" > ./affected_apps.txt
           exit 0
         fi
-
+        
         echo "Detected apps:"
         cat ./affected_apps.txt
     waitFor: ['Install dependencies']
 
   # 4️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
+  # Normalización a minúsculas y eliminación de caracteres no válidos.
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build and push images'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        # Leer la lista de aplicaciones del archivo compartido línea por línea
         if [ ! -s ./affected_apps.txt ]; then
           echo "No affected apps found in file. Skipping build/push."
           exit 0
         fi
-
+        
         echo "Starting build and push process..."
-
-        while read app; do
-          if [ -z "$app" ]; then continue; fi
-
-          # 🔹 Normalizamos el nombre de la imagen para Docker y Cloud Run
-          IMAGE_NAME=$(echo $app | tr '@' '-' | tr '/' '-')
+        
+        cat ./affected_apps.txt | while read app; do
+          if [ -z "$app" ]; then continue; fi # Saltar líneas vacías
           
-          echo "🐳 Building and pushing $app as $IMAGE_NAME..."
-          docker build -t gcr.io/$PROJECT_ID/$IMAGE_NAME ./apps/$app
-          docker push gcr.io/$PROJECT_ID/$IMAGE_NAME
-        done < ./affected_apps.txt
+          # 🚨 NORMALIZACIÓN COMPLETA (Slugification)
+          # 1. Convertir a minúsculas. 
+          # 2. Reemplazar '/' por '-'. 
+          # 3. Eliminar '@'.
+          app_lc=$(echo "$app" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          
+          echo "🐳 Building and pushing $app (as $app_lc)..."
+          # Construye la imagen. La carpeta de código fuente es el nombre original ($app).
+          docker build -t gcr.io/$PROJECT_ID/$app_lc ./apps/$app
+          # Sube la imagen con el nombre normalizado ($app_lc).
+          docker push gcr.io/$PROJECT_ID/$app_lc
+        done
     waitFor: ['Affected apps']
 
-  # 5️⃣ Desplegar las apps afectadas en Cloud Run usando nombres normalizados
+  # 5️⃣ Desplegar las apps afectadas en Cloud Run
+  # Usamos el nombre normalizado ($app_lc) para el servicio de Cloud Run.
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy affected apps'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        # Leer la lista de aplicaciones
         if [ ! -s ./affected_apps.txt ]; then
           echo "No affected apps found in file. Skipping deployment."
           exit 0
         fi
-
+        
         echo "Starting deployment process..."
 
-        while read app; do
-          if [ -z "$app" ]; then continue; fi
-
-          IMAGE_NAME=$(echo $app | tr '@' '-' | tr '/' '-')
-
-          echo "🚀 Deploying $app as $IMAGE_NAME to Cloud Run..."
-          gcloud run deploy $IMAGE_NAME \
-            --image=gcr.io/$PROJECT_ID/$IMAGE_NAME \
+        # Leemos el archivo línea por línea.
+        cat ./affected_apps.txt | while read app; do
+          if [ -z "$app" ]; then continue; fi # Saltar líneas vacías
+          
+          # 🚨 NORMALIZACIÓN COMPLETA (Slugification)
+          # 1. Convertir a minúsculas. 
+          # 2. Reemplazar '/' por '-'. 
+          # 3. Eliminar '@'.
+          app_lc=$(echo "$app" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          
+          echo "🚀 Deploying $app_lc to Cloud Run..."
+          # Despliega con el nombre normalizado y la imagen normalizada.
+          gcloud run deploy $app_lc \
+            --image=gcr.io/$PROJECT_ID/$app_lc \
             --platform=managed \
             --region=us-central1 \
             --quiet \
-            --project=$PROJECT_ID
-        done < ./affected_apps.txt
-    waitFor: ['Build and push images']
+            --project=$PROJECT_ID 
+        done
+    waitFor: ['Build and push images'] # Esperamos a que las imágenes estén listas
 
 # 6️⃣ Opciones generales de la build
 options:
