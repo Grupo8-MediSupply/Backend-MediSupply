@@ -59,40 +59,35 @@ steps:
         cat ./affected_apps.txt
     waitFor: ['Install dependencies']
 
-  # 4️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
-  # Normalización a minúsculas y eliminación de caracteres no válidos.
+    # 4️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build and push images'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # Leer la lista de aplicaciones del archivo compartido línea por línea
         if [ ! -s ./affected_apps.txt ]; then
           echo "No affected apps found in file. Skipping build/push."
           exit 0
         fi
-        
+
         echo "Starting build and push process..."
-        
+
         cat ./affected_apps.txt | while read app; do
-          if [ -z "$app" ]; then continue; fi # Saltar líneas vacías
-          
-          # 🚨 NORMALIZACIÓN COMPLETA (Slugification)
-          # 1. Convertir a minúsculas, reemplazar '/' por '-', eliminar '@' para el nombre del TAG.
+          if [ -z "$app" ]; then continue; fi
+
+          # Normalización del nombre para tags
           app_lc=$(echo "$app" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
-          
-          # 🎯 CORRECCIÓN DE LA RUTA: Extraer solo el nombre de la carpeta (sin scope @) para el build context.
-          # Esto convierte '@scope/app' o 'app' en 'app'.
-          app_path=${app##*/}
-          
-          echo "🐳 Building and pushing $app (as $app_lc). Context: ./apps/$app_path"
-          # Construye la imagen usando la RUTA DE CARPETA CORREGIDA ($app_path).
-          docker build -t gcr.io/$PROJECT_ID/$app_lc ./apps/$app_path
-          # Sube la imagen con el nombre normalizado ($app_lc).
+
+          echo "🐳 Building and pushing $app (as $app_lc)..."
+
+          # 🚀 Clave: usar la raíz del repo como contexto (.) y pasar la app como build-arg
+          docker build -t gcr.io/$PROJECT_ID/$app_lc --build-arg APP_NAME=$app_lc .
+
           docker push gcr.io/$PROJECT_ID/$app_lc
         done
     waitFor: ['Affected apps']
+
 
   # 5️⃣ Desplegar las apps afectadas en Cloud Run
   # Usamos el nombre normalizado ($app_lc) para el servicio de Cloud Run.
