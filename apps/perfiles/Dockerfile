@@ -11,7 +11,7 @@ COPY . .
 
 # Instalar Nx globalmente y dependencias del root
 RUN npm install -g nx@21.6.4
-RUN npm ci
+RUN npm install
 
 # Build de la app dinámica
 RUN nx build $APP_NAME
