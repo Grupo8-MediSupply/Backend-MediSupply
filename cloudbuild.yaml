@@ -1,5 +1,5 @@
 steps:
-  # 1️⃣ Instalar Node y dependencias
+  # 1️⃣ Instalar Node y dependencias (Solo npm ci)
   - name: 'node:22.17-bullseye'
     id: 'Install dependencies'
     entrypoint: 'bash'
@@ -10,27 +10,35 @@ steps:
         # Usa 'npm ci' para instalaciones limpias en CI/CD
         npm ci
 
-  # 2️⃣ Detectar apps afectadas (utiliza el archivo /workspace/affected_apps.txt)
+  # 2️⃣ Detectar apps afectadas (Instalamos jq aquí y usamos grep para filtrar E2E)
   - name: 'node:22.17-bullseye'
     id: 'Affected apps'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Detecting affected projects..."
-        # Detectar apps afectadas usando Nx. Output: one app name per line.
-        npx nx print-affected --target=build --base=origin/main~1 --head=HEAD --select=projects > /workspace/affected_apps.txt
+        echo "Detecting affected projects using modern Nx command..."
+        
+        # ⚠️ INSTALACIÓN CRÍTICA: Instalar jq en este mismo paso antes de usarlo.
+        apt-get update && apt-get install -y jq
+        
+        # Nuevo comando Nx (post-v19):
+        # 1. Obtiene los proyectos afectados.
+        # 2. Usa jq para obtener la lista plana de nombres.
+        # 3. Usa grep -v para EXCLUIR cualquier nombre que termine con '-e2e'.
+        npx nx show projects --affected --json --target=build --base=HEAD~1 --head=HEAD --type=app | \
+          jq -r '.[]' | grep -v -- "-e2e$" > ./affected_apps.txt
         
         # Verificar si el archivo está vacío. El flag -s verifica si el archivo existe y no está vacío.
-        if [ ! -s /workspace/affected_apps.txt ]; then
+        if [ ! -s ./affected_apps.txt ]; then
           echo "No apps affected. Exiting this step."
           # Si no hay apps, creamos un archivo vacío para que los siguientes pasos lo ignoren.
-          echo "" > /workspace/affected_apps.txt
+          echo "" > ./affected_apps.txt
           exit 0
         fi
         
         echo "Detected apps:"
-        cat /workspace/affected_apps.txt
+        cat ./affected_apps.txt
 
   # 3️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
   # Utilizamos el builder 'docker' para operaciones de imágenes.
@@ -42,7 +50,7 @@ steps:
       - '-c'
       - |
         # Leer la lista de aplicaciones del archivo compartido línea por línea
-        if [ ! -s /workspace/affected_apps.txt ]; then
+        if [ ! -s ./affected_apps.txt ]; then
           echo "No affected apps found in file. Skipping build/push."
           exit 0
         fi
@@ -50,7 +58,7 @@ steps:
         echo "Starting build and push process..."
         
         # Leemos el archivo línea por línea, la variable 'app' se define localmente en el bucle.
-        cat /workspace/affected_apps.txt | while read app; do
+        cat ./affected_apps.txt | while read app; do
           if [ -z "$app" ]; then continue; fi # Saltar líneas vacías
           
           echo "🐳 Building and pushing $app..."
@@ -71,7 +79,7 @@ steps:
       - '-c'
       - |
         # Leer la lista de aplicaciones
-        if [ ! -s /workspace/affected_apps.txt ]; then
+        if [ ! -s ./affected_apps.txt ]; then
           echo "No affected apps found in file. Skipping deployment."
           exit 0
         fi
@@ -79,7 +87,7 @@ steps:
         echo "Starting deployment process..."
 
         # Leemos el archivo línea por línea.
-        cat /workspace/affected_apps.txt | while read app; do
+        cat ./affected_apps.txt | while read app; do
           if [ -z "$app" ]; then continue; fi # Saltar líneas vacías
           
           echo "🚀 Deploying $app to Cloud Run..."
