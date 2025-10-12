@@ -1,5 +1,16 @@
 steps:
-  # 1️⃣ Instalar Node y dependencias (Solo npm ci)
+  # 1️⃣ PROFUNDIZAR EL CLONE: Necesario para que Nx pueda comparar HEAD con HEAD~1
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'Deepen Git History'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Deepening Git history to allow comparison with HEAD~1..."
+        # El valor --depth=2 asegura que el commit actual (HEAD) y el anterior (HEAD~1) estén disponibles.
+        git fetch origin $(git rev-parse HEAD) --depth=2
+
+  # 2️⃣ Instalar Node y dependencias (Solo npm ci)
   - name: 'node:22.17-bullseye'
     id: 'Install dependencies'
     entrypoint: 'bash'
@@ -9,8 +20,9 @@ steps:
         echo "Installing dependencies..."
         # Usa 'npm ci' para instalaciones limpias en CI/CD
         npm ci
+    waitFor: ['Deepen Git History']
 
-  # 2️⃣ Detectar apps afectadas (Instalamos jq aquí y usamos grep para filtrar E2E)
+  # 3️⃣ Detectar apps afectadas (Instalamos jq aquí y usamos grep para filtrar E2E)
   - name: 'node:22.17-bullseye'
     id: 'Affected apps'
     entrypoint: 'bash'
@@ -39,8 +51,9 @@ steps:
         
         echo "Detected apps:"
         cat ./affected_apps.txt
+    waitFor: ['Install dependencies']
 
-  # 3️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
+  # 4️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
   # Utilizamos el builder 'docker' para operaciones de imágenes.
   # Usamos 'while read' para evitar la ambigüedad de la variable $AFFECTED_APPS
   - name: 'gcr.io/cloud-builders/docker'
@@ -69,7 +82,7 @@ steps:
         done
     waitFor: ['Affected apps']
 
-  # 4️⃣ Desplegar las apps afectadas en Cloud Run
+  # 5️⃣ Desplegar las apps afectadas en Cloud Run
   # ESENCIAL: Usamos el builder 'gcloud' porque este sí incluye el comando 'gcloud'.
   # También usando 'while read' para evitar el problema de sustitución.
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -100,9 +113,9 @@ steps:
         done
     waitFor: ['Build and push images'] # Esperamos a que las imágenes estén listas
 
-# 5️⃣ Opciones generales de la build
+# 6️⃣ Opciones generales de la build
 options:
   logging: CLOUD_LOGGING_ONLY
 
-# 6️⃣ Timeout opcional
+# 7️⃣ Timeout opcional
 timeout: "1800s"
