@@ -7,9 +7,10 @@ steps:
       - '-c'
       - |
         echo "Installing dependencies..."
+        # Usa 'npm ci' para instalaciones limpias en CI/CD
         npm ci
 
-  # 2️⃣ Detectar apps afectadas
+  # 2️⃣ Detectar apps afectadas (utiliza el archivo /workspace/affected_apps.txt)
   - name: 'node:22.17-bullseye'
     id: 'Affected apps'
     entrypoint: 'bash'
@@ -19,39 +20,76 @@ steps:
         echo "Detecting affected projects..."
         # Detectar apps afectadas usando Nx
         npx nx print-affected --target=build --base=origin/main~1 --head=HEAD --select=projects > /workspace/affected_apps.txt
-        echo "Detected apps saved to /workspace/affected_apps.txt"
+        
+        AFFECTED_APPS=$(cat /workspace/affected_apps.txt | tr '\n' ' ')
+        if [ -z "$AFFECTED_APPS" ]; then
+          echo "No apps affected. Exiting now."
+          # Salir del script actual para no pasar una lista vacía
+          exit 0
+        fi
+        
+        echo "Detected apps: $AFFECTED_APPS"
+        # Aseguramos que el archivo esté limpio y listo para el siguiente paso.
+        echo $AFFECTED_APPS > /workspace/affected_apps.txt
 
-  # 3️⃣ Construir y desplegar solo apps afectadas
+  # 3️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
+  # Utilizamos el builder 'docker' para operaciones de imágenes.
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'Build and deploy apps'
+    id: 'Build and push images'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        # Leer la lista de aplicaciones del archivo compartido
         if [ ! -f /workspace/affected_apps.txt ]; then
-          echo "No affected apps file found."
+          echo "No affected apps file found. Skipping build/push."
           exit 0
         fi
+        
+        # Leemos la lista (que ahora está en una sola línea)
         AFFECTED_APPS=$(cat /workspace/affected_apps.txt)
-        if [ -z "$AFFECTED_APPS" ]; then
-          echo "No apps affected. Nothing to build."
+        echo "Apps to build: $AFFECTED_APPS"
+        
+        for app in $AFFECTED_APPS; do
+          echo "🐳 Building and pushing $app..."
+          # Construye la imagen, asumiendo que el Dockerfile está en ./apps/$app
+          docker build -t gcr.io/$PROJECT_ID/$app ./apps/$app
+          # Sube la imagen a Google Container Registry
+          docker push gcr.io/$PROJECT_ID/$app
+        done
+    waitFor: ['Affected apps']
+
+  # 4️⃣ Desplegar las apps afectadas en Cloud Run
+  # ESENCIAL: Usamos el builder 'gcloud' porque este sí incluye el comando 'gcloud'.
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy affected apps'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Re-leer la lista de aplicaciones
+        if [ ! -f /workspace/affected_apps.txt ]; then
+          echo "No affected apps file found. Skipping deployment."
           exit 0
         fi
-        echo "Affected apps: $AFFECTED_APPS"
+
+        AFFECTED_APPS=$(cat /workspace/affected_apps.txt)
+        echo "Apps to deploy: $AFFECTED_APPS"
+
         for app in $AFFECTED_APPS; do
-          echo "🚀 Building $app..."
-          docker build -t gcr.io/$PROJECT_ID/$app ./apps/$app
-          docker push gcr.io/$PROJECT_ID/$app
-          echo "Deploying $app to Cloud Run..."
+          echo "🚀 Deploying $app to Cloud Run..."
           gcloud run deploy $app \
             --image=gcr.io/$PROJECT_ID/$app \
             --platform=managed \
             --region=us-central1 \
-            --quiet
+            --quiet \
+            --project=$PROJECT_ID # Especificamos el proyecto para mayor seguridad
+        done
+    waitFor: ['Build and push images'] # Esperamos a que las imágenes estén listas
 
-# 4️⃣ Opciones generales de la build
+# 5️⃣ Opciones generales de la build
 options:
   logging: CLOUD_LOGGING_ONLY
 
-# 5️⃣ Timeout opcional
+# 6️⃣ Timeout opcional
 timeout: "1800s"
