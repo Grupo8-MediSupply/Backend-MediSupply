@@ -2,59 +2,48 @@
 FROM node:22.18-alpine AS builder
 WORKDIR /app
 
-ARG APP_NAME
+# 1. Recibir el nombre COMPLETO de Nx (ej: @medi-supply/perfiles)
+ARG APP_NAME 
 ENV APP_NAME=$APP_NAME
 
-# 📦 Copiar solo archivos de dependencias primero (cache layer)
-
+# 📦 Copiar archivos de dependencias
 COPY package*.json ./
-
 COPY nx.json ./
-
 COPY tsconfig*.json ./
 
+# 🚀 Instalar TODAS las dependencias (incluyendo devDeps para Nx)
+RUN npm ci
 
-
-# 🚀 Instalar Nx globalmente y dependencias
-
-RUN npm install -g nx@21.6.4
-
-RUN npm ci --only=production=false
-
-
-
-# 📁 Copiar código fuente después de instalar dependencias
-
+# 📁 Copiar código fuente
 COPY . .
 
-# 🏗️ Construir la aplicación específica (Usa el nombre completo: @medi-supply/perfiles)
-RUN nx build $APP_NAME --prod
+# 🏗️ Construir la aplicación específica (Usa el nombre COMPLETO, requerido por Nx)
+RUN npx nx build $APP_NAME --prod
+
 
 # Etapa de producción
 FROM node:22.18-alpine AS production
 WORKDIR /app
 
-ARG APP_NAME
+# Redefinir ARG para que el valor de Cloud Build persista en esta etapa
+ARG APP_NAME 
 ENV NODE_ENV=production
 
-# ✅ Solución al error de ruta (persistencia de variable):
-# 1. Definimos la variable de entorno persistente APP_FOLDER_NAME, eliminando el scope.
-ENV APP_FOLDER_NAME=$(echo $APP_NAME | sed 's|^@.*/||')
-
 # 👤 Crear usuario no-root por seguridad
-# Corregir para incluir todo el comando
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001
 
 # 📦 Copiar solo las dependencias de producción
 COPY package*.json ./
-# Usar el comando correcto para producción
-RUN npm ci --only=production && npm cache clean --force 
+RUN npm ci --only=production && npm cache clean --force
 
 # 📁 Copiar artefactos de build y scripts
-# Usamos la variable ENV que acabamos de definir
-COPY --from=builder --chown=nextjs:nodejs /app/dist/apps/$APP_FOLDER_NAME ./dist
-COPY --chown=nextjs:nodejs apps/$APP_FOLDER_NAME/docker-entrypoint.sh ./docker-entrypoint.sh
+# ✅ SOLUCIÓN AL COPY FAILED: Usamos sustitución de shell:
+# ${APP_NAME##*/} toma el valor de $APP_NAME y elimina el prefijo más largo 
+# que termina en '/' (es decir, elimina el scope '@medi-supply/'). 
+# El resultado es solo 'perfiles', que es la carpeta de salida en /dist/apps/.
+COPY --from=builder --chown=nextjs:nodejs /app/dist/apps/${APP_NAME##*/} ./dist
+COPY --chown=nextjs:nodejs apps/${APP_NAME##*/}/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # 🔐 Establecer permisos y usuario
 RUN chmod +x docker-entrypoint.sh
