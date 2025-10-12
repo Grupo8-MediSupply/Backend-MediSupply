@@ -6,6 +6,7 @@ steps:
     args:
       - '-c'
       - |
+        echo "Installing dependencies..."
         npm ci
 
   # 2️⃣ Detectar apps afectadas
@@ -18,6 +19,8 @@ steps:
         echo "Detecting affected projects..."
         # Compara el commit anterior de main con el commit que acaba de llegar
         affected=$(npx nx print-affected --target=build --base=origin/main~1 --head=HEAD --select=projects)
+        echo "Detected apps: $affected"
+        # Guardar la variable para los pasos siguientes
         echo "AFFECTED_APPS=$affected" >> $BASH_ENV
 
   # 3️⃣ Construir y desplegar solo apps afectadas
@@ -27,6 +30,12 @@ steps:
     args:
       - '-c'
       - |
+        # Cargar variables de pasos anteriores
+        source $BASH_ENV
+        if [ -z "$AFFECTED_APPS" ]; then
+          echo "No apps affected. Nothing to build."
+          exit 0
+        fi
         echo "Affected apps: $AFFECTED_APPS"
         for app in $AFFECTED_APPS; do
           echo "🚀 Building $app..."
@@ -41,7 +50,7 @@ steps:
 
 # 4️⃣ Opciones generales de la build
 options:
-  logging: CLOUD_LOGGING_ONLY  # Evita el error de "logs bucket" cuando se usa service_account
+  logging: CLOUD_LOGGING_ONLY  # Evita errores de bucket de logs al usar service_account
 
-# 5️⃣ Timeout opcional (por si tu build tarda mucho)
+# 5️⃣ Timeout opcional
 timeout: "1800s"  # 30 minutos
