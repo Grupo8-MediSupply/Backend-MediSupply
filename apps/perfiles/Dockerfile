@@ -2,19 +2,19 @@
 FROM node:22.18-alpine AS builder
 WORKDIR /app
 
-# ARG para recibir el nombre de la app (normalizado)
+# ARG para recibir el nombre de la app
 ARG APP_NAME
 ENV APP_NAME=$APP_NAME
 
-# Copiamos dependencias del root del monorepo
-COPY package*.json ./
-RUN npm install
-
-# Copiamos todo el monorepo
+# Copiar todo el monorepo primero (incluyendo nx.json, workspace.json, apps, libs)
 COPY . .
 
+# Instalar Nx globalmente y dependencias del root
+RUN npm install -g nx@21.6.4
+RUN npm ci
+
 # Build de la app dinámica
-RUN npx nx build $APP_NAME
+RUN nx build $APP_NAME
 
 # Etapa de producción
 FROM node:22.18-alpine AS production
@@ -25,7 +25,7 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/$APP_NAME/dist ./dist
 
-# Entrypoint dinámico (si cada app tiene su script, también se puede parametrizar)
+# Entrypoint dinámico
 COPY apps/$APP_NAME/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x docker-entrypoint.sh
 
