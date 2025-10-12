@@ -82,11 +82,7 @@ steps:
 
           # Usa $app_folder_name para la ruta del Dockerfile (apps/perfiles/Dockerfile)
           # Usa $app_name_full para el ARG dentro del Dockerfile (@medi-supply/perfiles)
-          docker build \
-            -f apps/$app_folder_name/Dockerfile \
-            -t gcr.io/$PROJECT_ID/$image_tag \
-            --build-arg APP_NAME=$app_name_full \ # Envía el nombre COMPLETO a Dockerfile
-            .
+          docker build -f apps/$app_folder_name/Dockerfile -t gcr.io/$PROJECT_ID/$image_tag --build-arg APP_NAME=$app_name_full .
 
           docker push gcr.io/$PROJECT_ID/$image_tag
         done
