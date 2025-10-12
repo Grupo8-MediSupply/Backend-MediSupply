@@ -17,10 +17,9 @@ steps:
       - '-c'
       - |
         echo "Detecting affected projects..."
-        AFFECTED_APPS=$(npx nx print-affected --target=build --base=origin/main~1 --head=HEAD --select=projects)
-        echo "Detected apps: $AFFECTED_APPS"
-        # Guardar la salida en un archivo temporal
-        echo "$AFFECTED_APPS" > /workspace/affected_apps.txt
+        # Detectar apps afectadas usando Nx
+        npx nx print-affected --target=build --base=origin/main~1 --head=HEAD --select=projects > /workspace/affected_apps.txt
+        echo "Detected apps saved to /workspace/affected_apps.txt"
 
   # 3️⃣ Construir y desplegar solo apps afectadas
   - name: 'gcr.io/cloud-builders/docker'
@@ -29,7 +28,10 @@ steps:
     args:
       - '-c'
       - |
-        # Leer apps afectadas del archivo
+        if [ ! -f /workspace/affected_apps.txt ]; then
+          echo "No affected apps file found."
+          exit 0
+        fi
         AFFECTED_APPS=$(cat /workspace/affected_apps.txt)
         if [ -z "$AFFECTED_APPS" ]; then
           echo "No apps affected. Nothing to build."
