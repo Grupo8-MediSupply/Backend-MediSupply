@@ -2,28 +2,33 @@
 FROM node:22.18-alpine AS builder
 WORKDIR /app
 
-# Copiamos dependencias del root del monorepo
-COPY package*.json ./
-RUN npm install
+# Solo necesitas el nombre completo de Nx si quieres pasarlo como ARG
+ARG APP_NAME=@medi-supply/perfiles
+ENV NODE_ENV=production
 
-# Copiamos todo el monorepo
+COPY package*.json ./
+COPY nx.json ./
+COPY tsconfig*.json ./
+RUN npm ci
 COPY . .
 
-# Build de la app perfiles
-RUN npx nx build perfiles
+# Construir la app
+RUN npx nx build $APP_NAME --prod
 
 # Etapa de producción
 FROM node:22.18-alpine AS production
 WORKDIR /app
 
-# Copiamos solo lo necesario
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/perfiles/dist ./dist
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
-# Entrypoint
-COPY apps/perfiles/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copiar build desde builder (hardcodeado)
+COPY --from=builder --chown=nextjs:nodejs /app/apps/perfiles/dist ./dist
+COPY --from=builder --chown=nextjs:nodejs /app/apps/perfiles/docker-entrypoint.sh ./docker-entrypoint.sh
+
 RUN chmod +x docker-entrypoint.sh
-
+USER nextjs
 EXPOSE 3000
 ENTRYPOINT ["./docker-entrypoint.sh"]

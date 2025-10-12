@@ -59,48 +59,47 @@ steps:
         cat ./affected_apps.txt
     waitFor: ['Install dependencies']
 
-  # 4️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
-  # Normalización a minúsculas y eliminación de caracteres no válidos.
+    # 4️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build and push images'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # Leer la lista de aplicaciones del archivo compartido línea por línea
-        if [ ! -s ./affected_apps.txt ]; then
-          echo "No affected apps found in file. Skipping build/push."
-          exit 0
-        fi
+        # ... (check for file content)
         
-        echo "Starting build and push process..."
-        
-        cat ./affected_apps.txt | while read app; do
-          if [ -z "$app" ]; then continue; fi # Saltar líneas vacías
+        cat ./affected_apps.txt | while read app_name_full; do
+          if [ -z "$app_name_full" ]; then continue; fi
+
+          # ✅ Limpieza para RUTA y NOMBRE DE IMAGEN/SERVICIO
+          # Obtiene 'perfiles' de '@medi-supply/perfiles'
+          app_folder_name=$(echo "$app_name_full" | sed 's|^@.*/||') 
           
-          # 🚨 NORMALIZACIÓN COMPLETA (Slugification)
-          # 1. Convertir a minúsculas. 
-          # 2. Reemplazar '/' por '-'. 
-          # 3. Eliminar '@'.
-          app_lc=$(echo "$app" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
-          
-          echo "🐳 Building and pushing $app (as $app_lc)..."
-          # Construye la imagen. La carpeta de código fuente es el nombre original ($app).
-          docker build -t gcr.io/$PROJECT_ID/$app_lc ./apps/$app
-          # Sube la imagen con el nombre normalizado ($app_lc).
-          docker push gcr.io/$PROJECT_ID/$app_lc
+          image_base_name="medi-supply-$app_folder_name"
+          image_tag=$(echo "$image_base_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+
+          echo "🐳 Building and pushing $app_folder_name -> $image_tag..."
+
+          # Usa $app_folder_name para la ruta del Dockerfile (apps/perfiles/Dockerfile)
+          # Usa $app_name_full para el ARG dentro del Dockerfile (@medi-supply/perfiles)
+          docker build \
+          -f apps/$app_folder_name/Dockerfile \
+          -t us-central1-docker.pkg.dev/$PROJECT_ID/medisupply-u/$image_tag \
+          --build-arg APP_NAME=$app_name_full \
+          --build-arg APP_FOLDER_NAME=$app_folder_name \
+          .
+
+          docker push us-central1-docker.pkg.dev/$PROJECT_ID/medisupply-u/$image_tag
         done
     waitFor: ['Affected apps']
 
   # 5️⃣ Desplegar las apps afectadas en Cloud Run
-  # Usamos el nombre normalizado ($app_lc) para el servicio de Cloud Run.
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy affected apps'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # Leer la lista de aplicaciones
         if [ ! -s ./affected_apps.txt ]; then
           echo "No affected apps found in file. Skipping deployment."
           exit 0
@@ -108,26 +107,27 @@ steps:
         
         echo "Starting deployment process..."
 
-        # Leemos el archivo línea por línea.
-        cat ./affected_apps.txt | while read app; do
-          if [ -z "$app" ]; then continue; fi # Saltar líneas vacías
+        cat ./affected_apps.txt | while read app_name_full; do
+          if [ -z "$app_name_full" ]; then continue; fi
           
-          # 🚨 NORMALIZACIÓN COMPLETA (Slugification)
-          # 1. Convertir a minúsculas. 
-          # 2. Reemplazar '/' por '-'. 
-          # 3. Eliminar '@'.
-          app_lc=$(echo "$app" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          # --- 🎯 CORRECCIÓN CLAVE: Obtener el nombre de la carpeta (sin scope de Nx)
+          app_folder_name=$(echo "$app_name_full" | sed 's|^@.*/||')
+
+          # Usar el nombre de la carpeta para nombrar el servicio
+          image_base_name="medi-supply-$app_folder_name"
+          image_tag=$(echo "$image_base_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          service_name=$(echo "$app_folder_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
           
-          echo "🚀 Deploying $app_lc to Cloud Run..."
-          # Despliega con el nombre normalizado y la imagen normalizada.
-          gcloud run deploy $app_lc \
-            --image=gcr.io/$PROJECT_ID/$app_lc \
+          echo "🚀 Deploying $service_name using image $image_tag..."
+          
+          gcloud run deploy $service_name \
+            --image=us-central1-docker.pkg.dev/$PROJECT_ID/medisupply-u/$image_tag \
             --platform=managed \
             --region=us-central1 \
             --quiet \
             --project=$PROJECT_ID 
         done
-    waitFor: ['Build and push images'] # Esperamos a que las imágenes estén listas
+    waitFor: ['Build and push images']
 
 # 6️⃣ Opciones generales de la build
 options:
