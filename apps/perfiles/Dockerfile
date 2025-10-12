@@ -43,7 +43,7 @@ COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # 📁 Copiar artefactos de build y scripts desde builder
-COPY --from=builder --chown=nextjs:nodejs /app/dist/apps/$APP_FOLDER_NAME ./dist
+COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nextjs:nodejs apps/$APP_FOLDER_NAME/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # 🔐 Establecer permisos y usuario
