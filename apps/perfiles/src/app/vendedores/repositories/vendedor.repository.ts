@@ -17,7 +17,7 @@ export class VendedorRepository implements IVendedorRepository {
 
       await this.db.transaction(async (trx) => {
         // Inserta el usuario y captura el ID generado por la DB
-        const [user] = await trx('usuario')
+        const [user] = await trx('usuarios.usuario')
           .insert({
             email: vendedor.email.Value,
             rol_id: vendedor.rolId,
@@ -29,7 +29,7 @@ export class VendedorRepository implements IVendedorRepository {
         createdUserId = user.id;
 
         // Inserta el vendedor usando el mismo ID
-        await trx('vendedor').insert({
+        await trx('usuarios.vendedor').insert({
           id: createdUserId,
           nombre: vendedor.nombre.Value,
           territorio: vendedor.territorio ?? null,
@@ -65,7 +65,7 @@ export class VendedorRepository implements IVendedorRepository {
    */
   async findById(id: string): Promise<Vendedor | null> {
     try {
-      const record = await this.db('vendedor')
+      const record = await this.db('usuarios.vendedor')
         .select(
           'vendedor.id',
           'vendedor.nombre',
