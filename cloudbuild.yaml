@@ -84,12 +84,12 @@ steps:
           # Usa $app_name_full para el ARG dentro del Dockerfile (@medi-supply/perfiles)
           docker build \
           -f apps/$app_folder_name/Dockerfile \
-          -t gcr.io/$PROJECT_ID/$image_tag \
+          -t us-central1-docker.pkg.dev/$PROJECT_ID/medisupply-u/$image_tag \
           --build-arg APP_NAME=$app_name_full \
           --build-arg APP_FOLDER_NAME=$app_folder_name \
           .
 
-          docker push gcr.io/$PROJECT_ID/$image_tag
+          docker push us-central1-docker.pkg.dev/$PROJECT_ID/medisupply-u/$image_tag
         done
     waitFor: ['Affected apps']
 
@@ -121,7 +121,7 @@ steps:
           echo "🚀 Deploying $service_name using image $image_tag..."
           
           gcloud run deploy $service_name \
-            --image=gcr.io/$PROJECT_ID/$image_tag \
+            --image=us-central1-docker.pkg.dev/$PROJECT_ID/medisupply-u/$image_tag \
             --platform=managed \
             --region=us-central1 \
             --quiet \
