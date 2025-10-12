@@ -20,7 +20,7 @@ export class VendedoresService {
       nombre: createVendedorDto.nombre,
       rolId: 1,
       paisId: 1,
-      password: 'testeo345&',
+      password: 'deploy_32$',
     };
     const vendedor = new Vendedor(props);
     const createdVendedor = await this.repo.create(vendedor);
