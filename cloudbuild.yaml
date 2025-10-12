@@ -73,24 +73,25 @@ steps:
 
         echo "Starting build and push process..."
 
-        cat ./affected_apps.txt | while read app; do
-          if [ -z "$app" ]; then continue; fi
+        cat ./affected_apps.txt | while read app_name_full; do
+          if [ -z "$app_name_full" ]; then continue; fi
 
-          # Crear nombre de imagen siguiendo tu convención local
-          image_name="medi-supply-$app"
+          # --- 🎯 CORRECCIÓN CLAVE: Obtener el nombre de la carpeta (sin scope de Nx)
+          # Ejemplo: de "@medi-supply/perfiles" a "perfiles"
+          app_folder_name=$(echo "$app_name_full" | sed 's|^@.*/||')
           
-          # Normalizar solo para el tag de GCR (minúsculas, sin caracteres especiales)
-          image_tag=$(echo "$image_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          # Crear nombre de imagen y tag
+          image_base_name="medi-supply-$app_folder_name"
+          image_tag=$(echo "$image_base_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
 
-          echo "🐳 Building and pushing $app -> $image_tag..."
+          echo "🐳 Building and pushing $app_folder_name -> $image_tag..."
 
-          # ✅ USAR -f para especificar el Dockerfile específico
-          # ✅ Pasar el nombre real de la app (no normalizado) como APP_NAME
-          # ✅ Mantener el contexto en la raíz (.)
+          # ✅ El Dockerfile usa la ruta apps/$app_folder_name/Dockerfile (ej. apps/perfiles/Dockerfile)
+          # ✅ Se pasa el nombre completo de Nx como APP_NAME (ej. @medi-supply/perfiles)
           docker build \
-            -f apps/$app/Dockerfile \
+            -f apps/$app_folder_name/Dockerfile \
             -t gcr.io/$PROJECT_ID/$image_tag \
-            --build-arg APP_NAME=$app \
+            --build-arg APP_NAME=$app_name_full \
             .
 
           docker push gcr.io/$PROJECT_ID/$image_tag
@@ -111,13 +112,16 @@ steps:
         
         echo "Starting deployment process..."
 
-        cat ./affected_apps.txt | while read app; do
-          if [ -z "$app" ]; then continue; fi
+        cat ./affected_apps.txt | while read app_name_full; do
+          if [ -z "$app_name_full" ]; then continue; fi
           
-          # Usar la misma convención de nombres
-          image_name="medi-supply-$app"
-          image_tag=$(echo "$image_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
-          service_name=$(echo "$app" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          # --- 🎯 CORRECCIÓN CLAVE: Obtener el nombre de la carpeta (sin scope de Nx)
+          app_folder_name=$(echo "$app_name_full" | sed 's|^@.*/||')
+
+          # Usar el nombre de la carpeta para nombrar el servicio
+          image_base_name="medi-supply-$app_folder_name"
+          image_tag=$(echo "$image_base_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          service_name=$(echo "$app_folder_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
           
           echo "🚀 Deploying $service_name using image $image_tag..."
           
