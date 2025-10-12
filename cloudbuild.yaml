@@ -17,11 +17,10 @@ steps:
       - '-c'
       - |
         echo "Detecting affected projects..."
-        # Compara el commit anterior de main con el commit que acaba de llegar
-        affected=$(npx nx print-affected --target=build --base=origin/main~1 --head=HEAD --select=projects)
-        echo "Detected apps: $affected"
-        # Guardar la variable para los pasos siguientes
-        echo "AFFECTED_APPS=$affected" >> $BASH_ENV
+        AFFECTED_APPS=$(npx nx print-affected --target=build --base=origin/main~1 --head=HEAD --select=projects)
+        echo "Detected apps: $AFFECTED_APPS"
+        # Guardar la salida en un archivo temporal
+        echo "$AFFECTED_APPS" > /workspace/affected_apps.txt
 
   # 3️⃣ Construir y desplegar solo apps afectadas
   - name: 'gcr.io/cloud-builders/docker'
@@ -30,8 +29,8 @@ steps:
     args:
       - '-c'
       - |
-        # Cargar variables de pasos anteriores
-        source $BASH_ENV
+        # Leer apps afectadas del archivo
+        AFFECTED_APPS=$(cat /workspace/affected_apps.txt)
         if [ -z "$AFFECTED_APPS" ]; then
           echo "No apps affected. Nothing to build."
           exit 0
@@ -50,7 +49,7 @@ steps:
 
 # 4️⃣ Opciones generales de la build
 options:
-  logging: CLOUD_LOGGING_ONLY  # Evita errores de bucket de logs al usar service_account
+  logging: CLOUD_LOGGING_ONLY
 
 # 5️⃣ Timeout opcional
-timeout: "1800s"  # 30 minutos
+timeout: "1800s"
