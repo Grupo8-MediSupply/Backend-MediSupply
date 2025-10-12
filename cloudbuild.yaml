@@ -76,28 +76,34 @@ steps:
         cat ./affected_apps.txt | while read app; do
           if [ -z "$app" ]; then continue; fi
 
-          # Normalización del nombre para tags
-          app_lc=$(echo "$app" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          # Crear nombre de imagen siguiendo tu convención local
+          image_name="medi-supply-$app"
+          
+          # Normalizar solo para el tag de GCR (minúsculas, sin caracteres especiales)
+          image_tag=$(echo "$image_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
 
-          echo "🐳 Building and pushing $app (as $app_lc)..."
+          echo "🐳 Building and pushing $app -> $image_tag..."
 
-          # 🚀 Clave: usar la raíz del repo como contexto (.) y pasar la app como build-arg
-          docker build -t gcr.io/$PROJECT_ID/$app_lc --build-arg APP_NAME=$app_lc .
+          # ✅ USAR -f para especificar el Dockerfile específico
+          # ✅ Pasar el nombre real de la app (no normalizado) como APP_NAME
+          # ✅ Mantener el contexto en la raíz (.)
+          docker build \
+            -f apps/$app/Dockerfile \
+            -t gcr.io/$PROJECT_ID/$image_tag \
+            --build-arg APP_NAME=$app \
+            .
 
-          docker push gcr.io/$PROJECT_ID/$app_lc
+          docker push gcr.io/$PROJECT_ID/$image_tag
         done
     waitFor: ['Affected apps']
 
-
   # 5️⃣ Desplegar las apps afectadas en Cloud Run
-  # Usamos el nombre normalizado ($app_lc) para el servicio de Cloud Run.
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Deploy affected apps'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        # Leer la lista de aplicaciones
         if [ ! -s ./affected_apps.txt ]; then
           echo "No affected apps found in file. Skipping deployment."
           exit 0
@@ -105,26 +111,24 @@ steps:
         
         echo "Starting deployment process..."
 
-        # Leemos el archivo línea por línea.
         cat ./affected_apps.txt | while read app; do
-          if [ -z "$app" ]; then continue; fi # Saltar líneas vacías
+          if [ -z "$app" ]; then continue; fi
           
-          # 🚨 NORMALIZACIÓN COMPLETA (Slugification)
-          # 1. Convertir a minúsculas. 
-          # 2. Reemplazar '/' por '-'. 
-          # 3. Eliminar '@'.
-          app_lc=$(echo "$app" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          # Usar la misma convención de nombres
+          image_name="medi-supply-$app"
+          image_tag=$(echo "$image_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          service_name=$(echo "$app" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
           
-          echo "🚀 Deploying $app_lc to Cloud Run..."
-          # Despliega con el nombre normalizado y la imagen normalizada.
-          gcloud run deploy $app_lc \
-            --image=gcr.io/$PROJECT_ID/$app_lc \
+          echo "🚀 Deploying $service_name using image $image_tag..."
+          
+          gcloud run deploy $service_name \
+            --image=gcr.io/$PROJECT_ID/$image_tag \
             --platform=managed \
             --region=us-central1 \
             --quiet \
             --project=$PROJECT_ID 
         done
-    waitFor: ['Build and push images'] # Esperamos a que las imágenes estén listas
+    waitFor: ['Build and push images']
 
 # 6️⃣ Opciones generales de la build
 options:
