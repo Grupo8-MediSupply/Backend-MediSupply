@@ -5,7 +5,27 @@ WORKDIR /app
 ARG APP_NAME
 ENV APP_NAME=$APP_NAME
 
-# ... (resto de la etapa builder)
+# 📦 Copiar solo archivos de dependencias primero (cache layer)
+
+COPY package*.json ./
+
+COPY nx.json ./
+
+COPY tsconfig*.json ./
+
+
+
+# 🚀 Instalar Nx globalmente y dependencias
+
+RUN npm install -g nx@21.6.4
+
+RUN npm ci --only=production=false
+
+
+
+# 📁 Copiar código fuente después de instalar dependencias
+
+COPY . .
 
 # 🏗️ Construir la aplicación específica (Usa el nombre completo: @medi-supply/perfiles)
 RUN nx build $APP_NAME --prod
@@ -34,4 +54,19 @@ COPY --from=builder --chown=nextjs:nodejs /app/dist/apps/$APP_FOLDER_NAME ./dist
 COPY --chown=nextjs:nodejs apps/$APP_FOLDER_NAME/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # 🔐 Establecer permisos y usuario
-# ... (resto del Dockerfile)
+
+RUN chmod +x docker-entrypoint.sh
+
+USER nextjs
+
+
+
+# 🌐 Exponer puerto
+
+EXPOSE 3000
+
+
+
+# 🚀 Punto de entrada
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
