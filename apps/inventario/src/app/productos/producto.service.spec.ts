@@ -16,6 +16,7 @@ describe('ProductoService (unit)', () => {
   beforeEach(() => {
     mockRepo = {
       create: jest.fn(),
+      findById: jest.fn(),
       // si IProductoRepository tiene más métodos, agrégalos como jest.fn()
     } as unknown as jest.Mocked<IProductoRepository>;
 
@@ -156,4 +157,64 @@ describe('ProductoService (unit)', () => {
     await expect(service.createProducto(dto)).rejects.toBeInstanceOf(BadRequestException);
     expect(mockRepo.create).not.toHaveBeenCalled();
   });
+
+  test('maneja insumo médico sin fechaVencimiento', async () => {
+  const dto: CreateProductoDto = {
+    sku: 'SKU-010',
+    nombre: 'Jeringa',
+    descripcion: 'Uso hospitalario',
+    tipo: TipoProducto.INSUMO_MEDICO,
+    insumoMedico: {
+      marca: 'MarcaZ',
+      modelo: 'XZ-10',
+      fabricante: 'FabZ',
+      unidad: 'unidad',
+      lote: 'L-999',
+      fechaVencimiento: undefined,
+    },
+  };
+
+  const createdFromRepo = { id: 'i-2' } as any;
+  mockRepo.create.mockResolvedValue(createdFromRepo);
+
+  const result = await service.createProducto(dto);
+
+  expect(mockRepo.create).toHaveBeenCalled();
+  const arg = mockRepo.create.mock.calls[0][0];
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  expect(arg.fechaVencimiento).toBeUndefined();
+  expect(result).toBe(createdFromRepo);
+});
+
+test('maneja equipo médico sin fechaCompra', async () => {
+  const dto: CreateProductoDto = {
+    sku: 'SKU-011',
+    nombre: 'Balanza',
+    descripcion: 'Equipo de medición',
+    tipo: TipoProducto.EQUIPO_MEDICO,
+    equipoMedico: {
+      marca: 'MarcaQ',
+      modelo: 'Q-10',
+      numeroSerie: 'SN999',
+      proveedor: 'ProvQ',
+      fechaCompra: undefined,
+      garantiaMeses: 12,
+    },
+  };
+
+  const createdFromRepo = { id: 'e-2' } as any;
+  mockRepo.create.mockResolvedValue(createdFromRepo);
+
+  const result = await service.createProducto(dto);
+
+  expect(mockRepo.create).toHaveBeenCalled();
+  const arg = mockRepo.create.mock.calls[0][0];
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  expect(arg.fechaCompra).toBeUndefined();
+  expect(result).toBe(createdFromRepo);
+});
+
+
 });
