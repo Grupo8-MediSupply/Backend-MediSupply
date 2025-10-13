@@ -1,7 +1,7 @@
 import { BaseEntity } from '@medi-supply/core';
 
 export interface ProductoPros {
-    id: number;
+    id?: number;
     sku: string;
     nombre: string;
     descripcion?: string;

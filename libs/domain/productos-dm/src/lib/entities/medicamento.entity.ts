@@ -21,9 +21,6 @@ export class ProductoMedicamento extends ProductoGlobal {
         super(props);
         this.principioActivo = props.principioActivo;
         this.concentracion = props.concentracion;
-        this.formaFarmaceutica = props.formaFarmaceutica;
-        this.viaAdministracion = props.viaAdministracion;
-        this.laboratorio = props.laboratorio;
-        this.registroSanitario = props.registroSanitario;
+
     }
 }

@@ -13,14 +13,6 @@ async function bootstrap() {
     new FastifyAdapter(),
   );
 
-  app.useGlobalPipes(
-  new ValidationPipe({
-    transform: true, // convierte el body en instancias reales de DTOs
-    whitelist: true, // elimina propiedades no declaradas en el DTO
-    forbidNonWhitelisted: true, // lanza error si envían propiedades desconocidas
-  }),
-);
-
   // 🔹 Prefijo global
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);

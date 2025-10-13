@@ -22,6 +22,9 @@
   ],
   "references": [
     {
+      "path": "../../libs/domain/productos-dm/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/shared/tsconfig.lib.json"
     },
     {
