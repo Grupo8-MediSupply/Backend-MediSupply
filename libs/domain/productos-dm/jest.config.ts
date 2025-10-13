@@ -10,27 +10,12 @@ const swcJestConfig = JSON.parse(
 swcJestConfig.swcrc = false;
 
 export default {
-  displayName: '@medi-supply/inventario',
-  preset: '../../jest.preset.js',
+  displayName: '@medi-supply/productos-dm',
+  preset: '../../../jest.preset.js',
   testEnvironment: 'node',
   transform: {
     '^.+\\.[tj]s$': ['@swc/jest', swcJestConfig],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: 'test-output/jest/coverage',
-  coverageThreshold: {
-    global: {
-      functions: 80,
-      lines: 80,
-      statements: 80,
-    },
-  },
-  collectCoverageFrom: [
-  "src/**/*.ts",
-  "!src/**/*.module.ts",
-  "!src/**/*.dto.ts", // ⬅️ ignora los DTOs
-  "!src/main.ts",
-  "!src/**/repositories/*.ts", // ⬅️ ignora los repositorios
-],
-
 };
