@@ -25,4 +25,12 @@ export default {
       statements: 80,
     },
   },
+  collectCoverageFrom: [
+  "src/**/*.ts",
+  "!src/**/*.module.ts",
+  "!src/**/*.dto.ts", // ⬅️ ignora los DTOs
+  "!src/main.ts",
+  "!src/**/repositories/*.ts", // ⬅️ ignora los repositorios
+],
+
 };
