@@ -33,7 +33,8 @@
         "libs/config-env/*",
         "libs/shared/*",
         "libs/domain/core/*",
-        "libs/domain/perfiles-dm/*"
+        "libs/domain/perfiles-dm/*",
+        "libs/domain/productos-dm/*"
       ]
     },
     {
@@ -71,7 +72,8 @@
         "libs/config-env/*",
         "libs/shared/*",
         "libs/domain/core/*",
-        "libs/domain/perfiles-dm/*"
+        "libs/domain/perfiles-dm/*",
+        "libs/domain/productos-dm/*"
       ],
       "options": {
         "typecheck": {
