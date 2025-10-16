@@ -35,6 +35,9 @@
     },
     {
       "path": "./libs/domain/perfiles-dm"
+    },
+    {
+      "path": "./libs/domain/productos-dm"
     }
   ]
 }

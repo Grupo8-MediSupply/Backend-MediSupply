@@ -1,0 +1,137 @@
+steps:
+  # 1️⃣ PROFUNDIZAR EL CLONE: Necesario para que Nx pueda comparar HEAD con HEAD~1
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'Deepen Git History'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Deepening Git history to allow comparison with HEAD~1..."
+        # El valor --depth=2 asegura que el commit actual (HEAD) y el anterior (HEAD~1) estén disponibles.
+        # Esto permite a Nx realizar la comparación.
+        git fetch origin $(git rev-parse HEAD) --depth=2
+
+  # 2️⃣ Instalar Node y dependencias (Solo npm ci)
+  - name: 'node:22.17-bullseye'
+    id: 'Install dependencies'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Installing dependencies..."
+        # Usa 'npm ci' para instalaciones limpias en CI/CD
+        npm ci
+    waitFor: ['Deepen Git History']
+
+  # 3️⃣ Detectar apps afectadas (Instalamos jq aquí y usamos grep para filtrar E2E)
+  - name: 'node:22.17-bullseye'
+    id: 'Affected apps'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Configurar pipefail para que si cualquier comando en el pipe falla, el paso falle inmediatamente.
+        set -e -o pipefail
+
+        echo "Detecting affected projects using modern Nx command..."
+        
+        # ⚠️ INSTALACIÓN CRÍTICA: Instalar jq en este mismo paso antes de usarlo.
+        apt-get update && apt-get install -y jq
+        
+        # Nuevo comando Nx (post-v19):
+        # 1. Obtiene los proyectos afectados.
+        # 2. Usa jq para obtener la lista plana de nombres.
+        # 3. Usa grep -v para EXCLUIR cualquier nombre que termine con '-e2e'.
+        npx nx show projects --affected --json --target=build --base=HEAD~1 --head=HEAD --type=app | \
+          jq -r '.[]' | grep -v -- "-e2e$" > ./affected_apps.txt
+        
+        # Después de que el pipe finaliza con éxito, podemos verificar el archivo.
+        
+        # Verificar si el archivo está vacío. El flag -s verifica si el archivo existe y no está vacío.
+        if [ ! -s ./affected_apps.txt ]; then
+          echo "No apps affected. Exiting this step."
+          # Si no hay apps, creamos un archivo vacío para que los siguientes pasos lo ignoren.
+          echo "" > ./affected_apps.txt
+          exit 0
+        fi
+        
+        echo "Detected apps:"
+        cat ./affected_apps.txt
+    waitFor: ['Install dependencies']
+
+    # 4️⃣ Construir y Pushear solo las imágenes de Docker de las apps afectadas
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build and push images'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # ... (check for file content)
+        
+        cat ./affected_apps.txt | while read app_name_full; do
+          if [ -z "$app_name_full" ]; then continue; fi
+
+          # ✅ Limpieza para RUTA y NOMBRE DE IMAGEN/SERVICIO
+          # Obtiene 'perfiles' de '@medi-supply/perfiles'
+          app_folder_name=$(echo "$app_name_full" | sed 's|^@.*/||') 
+          
+          image_base_name="medi-supply-$app_folder_name"
+          image_tag=$(echo "$image_base_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+
+          echo "🐳 Building and pushing $app_folder_name -> $image_tag..."
+
+          # Usa $app_folder_name para la ruta del Dockerfile (apps/perfiles/Dockerfile)
+          # Usa $app_name_full para el ARG dentro del Dockerfile (@medi-supply/perfiles)
+          docker build \
+          -f apps/$app_folder_name/Dockerfile \
+          -t us-central1-docker.pkg.dev/$PROJECT_ID/medisupply-u/$image_tag \
+          --build-arg APP_NAME=$app_name_full \
+          --build-arg APP_FOLDER_NAME=$app_folder_name \
+          .
+
+          docker push us-central1-docker.pkg.dev/$PROJECT_ID/medisupply-u/$image_tag
+        done
+    waitFor: ['Affected apps']
+
+  # 5️⃣ Desplegar las apps afectadas en Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Deploy affected apps'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ ! -s ./affected_apps.txt ]; then
+          echo "No affected apps found in file. Skipping deployment."
+          exit 0
+        fi
+        
+        echo "Starting deployment process..."
+
+        cat ./affected_apps.txt | while read app_name_full; do
+          if [ -z "$app_name_full" ]; then continue; fi
+          
+          # --- 🎯 CORRECCIÓN CLAVE: Obtener el nombre de la carpeta (sin scope de Nx)
+          app_folder_name=$(echo "$app_name_full" | sed 's|^@.*/||')
+
+          # Usar el nombre de la carpeta para nombrar el servicio
+          image_base_name="medi-supply-$app_folder_name"
+          image_tag=$(echo "$image_base_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          service_name=$(echo "$app_folder_name" | tr '[:upper:]' '[:lower:]' | sed -e 's|/|-|g' -e 's|@||g')
+          
+          echo "🚀 Deploying $service_name using image $image_tag..."
+          
+          gcloud run deploy $service_name \
+            --image=us-central1-docker.pkg.dev/$PROJECT_ID/medisupply-u/$image_tag \
+            --platform=managed \
+            --region=us-central1 \
+            --quiet \
+            --project=$PROJECT_ID 
+        done
+    waitFor: ['Build and push images']
+
+# 6️⃣ Opciones generales de la build
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+# 7️⃣ Timeout opcional
+timeout: "1800s"

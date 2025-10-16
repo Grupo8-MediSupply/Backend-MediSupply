@@ -4,6 +4,9 @@
   "include": [],
   "references": [
     {
+      "path": "../../libs/domain/productos-dm"
+    },
+    {
       "path": "../../libs/shared"
     },
     {

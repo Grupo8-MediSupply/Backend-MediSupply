@@ -3,7 +3,7 @@ FROM node:22.18-alpine AS builder
 WORKDIR /app
 
 # Solo necesitas el nombre completo de Nx si quieres pasarlo como ARG
-ARG APP_NAME=@medi-supply/perfiles
+ARG APP_NAME=@medi-supply/inventario
 ENV NODE_ENV=production
 
 COPY package*.json ./
@@ -25,8 +25,8 @@ COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # Copiar build desde builder (hardcodeado)
-COPY --from=builder --chown=nextjs:nodejs /app/apps/perfiles/dist ./dist
-COPY --from=builder --chown=nextjs:nodejs /app/apps/perfiles/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --from=builder --chown=nextjs:nodejs /app/apps/inventario/dist ./dist
+COPY --from=builder --chown=nextjs:nodejs /app/apps/inventario/docker-entrypoint.sh ./docker-entrypoint.sh
 
 RUN chmod +x docker-entrypoint.sh
 USER nextjs
