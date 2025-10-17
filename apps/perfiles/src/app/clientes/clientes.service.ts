@@ -12,7 +12,6 @@ export class ClientesService {
   ) {}
 
   async create(createClienteDto: CreateClienteDto): Promise<ClienteResponseDto> {
-    // 🧱 1. Construir la entidad Cliente
     const cliente = new Cliente({
       email: createClienteDto.email,
       rolId: 30, 
