@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
 import { MediSupplyConfigEnvModule } from '@medi-supply/config-env';
 import { MediSupplyDatabaseModule } from '@medi-supply/database';
 import { MediSupplySharedModule } from '@medi-supply/shared';
@@ -14,7 +13,7 @@ import { MediSupplyProductosDmModule } from '@medi-supply/productos-dm';
     MediSupplyProductosDmModule,
     ProductoModule,
   ],
-  controllers: [AppController],
+  controllers: [],
   providers: [],
 })
 export class AppModule {}
