@@ -8,7 +8,7 @@ export class ProveedorRepository implements IProveedorRepository {
   async create(proveedor: Proveedor): Promise<Proveedor> {
     const trx = await this.db.transaction();
     try {
-      const [usuario] = await trx('usuario')
+      const [usuario] = await trx('usuarios.usuario')
         .insert({
           email: proveedor.email.Value,
           password_hash: proveedor.password,
@@ -17,25 +17,22 @@ export class ProveedorRepository implements IProveedorRepository {
         })
         .returning(['id']);
 
-      const [created] = await trx('proveedor')
+      const [created] = await trx('usuarios.proveedor')
         .insert({
-          usuario_id: usuario.id,
-          nombre_proveedor: proveedor.nombreProveedor.Value,
-          numero_identificacion: proveedor.numeroIdentificacion,
-          pais: proveedor.pais,
-          email: proveedor.email.Value,
+          id: usuario.id,
+          nombre: proveedor.nombreProveedor.Value,
           contacto_principal: proveedor.contactoPrincipal.Value,
-          telefono_contacto: proveedor.telefonoContacto,
+          telefono: proveedor.telefonoContacto,
         })
-        .returning(['id', 'nombre_proveedor', 'email', 'pais']);
+        .returning(['id', 'nombre', 'contacto_principal', 'telefono']);
 
       await trx.commit();
 
       return new Proveedor({
         id: created.id,
-        email: created.email,
-        pais: created.pais,
-        nombreProveedor: created.nombre_proveedor,
+        email: proveedor.email.Value,
+        pais: proveedor.pais,
+        nombreProveedor: proveedor.nombreProveedor.Value,
         numeroIdentificacion: proveedor.numeroIdentificacion,
         contactoPrincipal: proveedor.contactoPrincipal.Value,
         telefonoContacto: proveedor.telefonoContacto,
