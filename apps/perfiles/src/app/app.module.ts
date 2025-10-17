@@ -6,6 +6,7 @@ import { MediSupplyPerfilesDmModule } from '@medi-supply/perfiles-dm';
 import { VendedoresModule } from './vendedores/vendedores.module';
 import { ProveedoresModule } from './proveedores/proveedores.module';
 import { AppController } from './controller.controller';
+import { ClientesModule } from './clientes/clientes.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AppController } from './controller.controller';
     MediSupplyPerfilesDmModule,
     VendedoresModule,
     ProveedoresModule,
+    ClientesModule,
   ],
   controllers: [AppController],
   providers: [],
