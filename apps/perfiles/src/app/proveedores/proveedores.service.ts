@@ -19,8 +19,8 @@ export class ProveedoresService {
         pais: createProveedorDto.pais,
         contactoPrincipal: createProveedorDto.contactoPrincipal,
         telefonoContacto: createProveedorDto.telefonoContacto,
-        rolId: 2, 
-        paisId: 1, 
+        rolId: 30, 
+        paisId: 10, 
         password: 'Proveedor123$', 
 };
 
