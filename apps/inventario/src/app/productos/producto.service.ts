@@ -10,6 +10,7 @@ import {
   type IProductoRepository,
   type ProductoVariant,
 } from '@medi-supply/productos-dm';
+import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
 
 @Injectable()
 export class ProductoService {
@@ -18,6 +19,7 @@ export class ProductoService {
     private readonly productoRepository: IProductoRepository
   ) {}
 
+  // 🟩 Crear producto (ya existente)
   async createProducto(
     createProductoDto: CreateProductoDto
   ): Promise<ProductoVariant> {
@@ -25,6 +27,68 @@ export class ProductoService {
     return await this.productoRepository.create(producto);
   }
 
+  // 🟦 Nuevo método: obtener detalle del producto por ID
+  async findById(id: number): Promise<ProductoDetalleResponseDto> {
+    const producto = await this.productoRepository.findById(id);
+    if (!producto) {
+      throw new NotFoundException(`No se encontró el producto con ID ${id}`);
+    }
+
+    const response = new ProductoDetalleResponseDto();
+    response.id = producto.id!;
+    response.sku = producto.sku;
+    response.nombre = producto.nombre;
+    response.descripcion = producto.descripcion;
+
+    if (producto instanceof ProductoMedicamento) {
+      response.tipo = 'medicamento';
+      response.detalleEspecifico = {
+        principioActivo: producto.principioActivo,
+        concentracion: producto.concentracion,
+        formaFarmaceutica: producto.formaFarmaceutica,
+        viaAdministracion: producto.viaAdministracion,
+        laboratorio: producto.laboratorio,
+        registroSanitario: producto.registroSanitario,
+      };
+    } else if (producto instanceof ProductoInsumoMedico) {
+      response.tipo = 'insumo_medico';
+      response.detalleEspecifico = {
+        marca: producto.marca,
+        modelo: producto.modelo,
+        fabricante: producto.fabricante,
+        unidad: producto.unidad,
+        lote: producto.lote,
+        fechaVencimiento: producto.fechaVencimiento,
+      };
+    } else if (producto instanceof ProductoEquipoMedico) {
+      response.tipo = 'equipo_medico';
+      response.detalleEspecifico = {
+        marca: producto.marca,
+        modelo: producto.modelo,
+        numeroSerie: producto.numeroSerie,
+        proveedor: producto.proveedor,
+        fechaCompra: producto.fechaCompra,
+        garantiaMeses: producto.garantiaMeses,
+      };
+    }
+
+    // 🔹 Mock temporal — luego se reemplazará con consultas reales a inventario.bodega_producto y normativas
+    response.ubicacion = {
+      idBodega: 1,
+      nombreBodega: 'Bodega Central',
+      cantidadDisponible: 20,
+    };
+
+    response.regulaciones = {
+      pais: 'Colombia',
+      normativaTributaria: 'Decreto 1234/2022 - INVIMA',
+      observaciones: 'Cumple con la normativa sanitaria vigente.',
+    };
+
+    return response;
+  }
+
+  // 🧱 Mapeo auxiliar (ya existente)
   private mapDtoToProductoVariant(dto: CreateProductoDto): ProductoVariant {
     const baseProps = {
       sku: dto.sku,
