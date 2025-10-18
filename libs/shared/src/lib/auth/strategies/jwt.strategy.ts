@@ -8,11 +8,17 @@ import { JwtPayloadDto } from '../dto/jwt-payload.dto';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly config: ConfigService) {
     const isProduction = config.get<string>('NODE_ENV') === 'production';
-
+    console.log('JWT Strategy - isProduction:', isProduction);
     // 🔑 En local usamos HS256 (clave secreta), en prod RS256 (clave pública)
-    const secretOrKey = isProduction
+    let secretOrKey = isProduction
       ? config.get<string>('JWT_PUBLIC_KEY') // desde Secret Manager o variable
       : config.get<string>('JWT_SECRET', 'default_secret');
+
+    console.log(secretOrKey); 
+
+    if (isProduction && secretOrKey) {
+      secretOrKey = secretOrKey.replace(/\\n/g, '\n');
+    }
 
     const algorithms = isProduction ? ['RS256'] : ['HS256'];
 
@@ -24,7 +30,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) : Promise<JwtPayloadDto> {
+  async validate(payload: any): Promise<JwtPayloadDto> {
     // Devuelve lo que aparecerá en req.user
     return {
       sub: payload.sub,
