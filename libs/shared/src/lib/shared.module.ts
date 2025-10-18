@@ -5,7 +5,7 @@ import { ResponseInterceptor } from './interceptors/response.interceptor';
 import { HttpManagerService } from './http/http-manager.service';
 import { HttpModule } from '@nestjs/axios';
 import { AuthModule } from './auth/auth.module';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { JwtReadGuard } from './auth/guards/jwt-auth.guard';
 
 @Global()
 @Module({
@@ -22,7 +22,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     },
     {
       provide: APP_GUARD,
-      useClass: JwtAuthGuard, // 🔐 Todos los endpoints protegidos globalmente
+      useClass: JwtReadGuard, // 🔐 Todos los endpoints protegidos globalmente
     },
   ],
   exports: [HttpManagerService, AuthModule],
