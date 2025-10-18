@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { Usuario } from '@medi-supply/perfiles-dm';
 import type { IUsuariosRepository } from '@medi-supply/perfiles-dm';
 import { UsuarioConsultaDto } from './dtos/response/usuario-consulta.dto';
+import { ConfigService } from '@nestjs/config';
 
 jest.mock('bcrypt');
 
@@ -12,6 +13,7 @@ describe('AppService (unit)', () => {
   let service: AppService;
   let mockRepo: jest.Mocked<IUsuariosRepository>;
   let mockJwt: jest.Mocked<JwtService>;
+  let mockCConfigService: jest.Mocked<ConfigService>;
 
   beforeEach(() => {
     mockRepo = {
@@ -22,7 +24,11 @@ describe('AppService (unit)', () => {
       signAsync: jest.fn(),
     } as unknown as jest.Mocked<JwtService>;
 
-    service = new AppService(mockRepo, mockJwt);
+    mockCConfigService = {
+      get: jest.fn(),
+    } as unknown as jest.Mocked<ConfigService>;
+
+    service = new AppService(mockRepo, mockJwt, mockCConfigService);
   });
 
   // -------------------------------------------------
@@ -105,7 +111,7 @@ describe('AppService (unit)', () => {
         email: userDto.email,
         role: userDto.role,
         pais: userDto.pais,
-      });
+      }, { header: { alg: 'RS256', kid: 'mymainkey-1' } });
       expect(result).toEqual({ access_token: token });
     });
 

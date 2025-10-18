@@ -39,11 +39,7 @@ import { UsuariosRepository } from './repositories/usuarios.repository';
               algorithm: 'RS256',
               expiresIn: `${configService.get('JWT_EXPIRES_IN') || 3600}s`,
               issuer: jwtIssuer,
-              audience: jwtAudience,
-              header: {
-                kid: 'mymainkey-1', // 🔑 aquí pones el mismo que en tu JWKS
-                alg: 'RS256',
-              },
+              audience: jwtAudience
             },
           };
         } else {
