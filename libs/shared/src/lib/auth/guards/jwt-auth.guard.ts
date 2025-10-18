@@ -21,7 +21,9 @@ export class JwtReadGuard implements CanActivate {
     const userInfoHeader = req.headers['x-apigateway-api-userinfo'];
     if (userInfoHeader) {
       try {
-        req.user = JSON.parse(userInfoHeader); // claims ya validados
+        console.log('User Info Header (Base64):', userInfoHeader);
+        const payloadString = Buffer.from(userInfoHeader, 'base64').toString('utf8');
+        req.user = JSON.parse(payloadString);
         return true;
       } catch {
         throw new UnauthorizedException('Error al leer la información del usuario en la nube');
