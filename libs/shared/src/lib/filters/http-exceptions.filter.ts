@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { DomainException } from '@medi-supply/core'; 
+import { DomainException } from '@medi-supply/core';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -18,49 +18,81 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<FastifyRequest>();
     const reply = ctx.getResponse<FastifyReply>();
 
-    let status: number;
-    let message: string | object;
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | object = 'Internal server error';
     let code: string | undefined;
     let context: Record<string, any> | undefined;
+    let stack: string | undefined;
+    let exceptionName = 'UnknownException';
 
-    // 🧩 Caso 1: HttpException de NestJS
+    // 🧩 HttpException
     if (exception instanceof HttpException) {
+      const response = exception.getResponse();
       status = exception.getStatus();
-      message = exception.getResponse();
+      exceptionName = exception.constructor?.name ?? 'HttpException';
 
-      if (typeof message === 'object' && (message as any).message) {
-        message = (message as any).message;
+      if (typeof response === 'string') {
+        message = response;
+      } else if (typeof response === 'object') {
+        message = (response as any).message ?? response;
       }
+
+      stack = exception.stack;
     }
 
-    // 🧩 Caso 2: DomainException (de tu capa de dominio)
+    // 🧩 DomainException (de tu dominio)
     else if (exception instanceof DomainException) {
-      status = HttpStatus.BAD_REQUEST; // o HttpStatus.UNPROCESSABLE_ENTITY si lo prefieres
+      status = HttpStatus.BAD_REQUEST;
       message = exception.message;
       code = exception.code;
       context = exception.context;
+      stack = exception.stack;
+      exceptionName = exception.constructor?.name ?? 'DomainException';
     }
 
-    // 🧩 Caso 3: Excepción desconocida
+    // 🧩 Errores genéricos de tipo Error
+    else if (exception instanceof Error) {
+      message = exception.message || 'Error inesperado';
+      stack = exception.stack;
+      exceptionName = exception.constructor?.name ?? 'Error';
+    }
+
+    // 🧩 Si no entra en ninguno de los anteriores
     else {
-      status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = 'Internal server error';
+      message = "Error al realizar la operación. Contáctese con soporte.";
     }
 
     const errorResponse = {
       success: false,
       timestamp: new Date().toISOString(),
       path: request.url,
+      method: request.method,
       status,
       message,
       ...(code && { code }),
       ...(context && { context }),
     };
 
-    // 🧾 Log más detallado
+    // 📘 Log más completo y sin errores de tipo
     this.logger.error(
-      `❌ ${request.method} ${request.url} → ${message}`,
-      JSON.stringify(exception),
+      `🚨 [${request.method}] ${request.url}`,
+      `
+📋 Status: ${status}
+🧩 Exception: ${exceptionName}
+💬 Message: ${
+        typeof message === 'string' ? message : JSON.stringify(message, null, 2)
+      }
+🧠 Code: ${code ?? 'N/A'}
+👤 Request Info: ${JSON.stringify({
+        ip: request.ip,
+        headers: {
+          'user-agent': request.headers['user-agent'],
+          referer: request.headers['referer'],
+        },
+      })}
+🪵 Stack:
+${stack ?? '(no stack trace)'}
+`.trim()
     );
 
     reply.status(status).send(errorResponse);

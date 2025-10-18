@@ -2,7 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProductoController } from './producto.controller';
 import { ProductoService } from './producto.service';
 import { CreateProductoDto, TipoProducto } from './dtos/request/create-producto.dto';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import type { JwtPayloadDto } from '@medi-supply/shared';
+import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
 
 describe('ProductoController', () => {
   let controller: ProductoController;
@@ -11,7 +13,9 @@ describe('ProductoController', () => {
   beforeEach(async () => {
     const mockProductoService = {
       createProducto: jest.fn(),
-    } as unknown as jest.Mocked<ProductoService>;
+      findById: jest.fn(),
+      obtenerProductosDeUnaRegion: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProductoController],
@@ -60,7 +64,7 @@ describe('ProductoController', () => {
         descripcion: 'Y',
         tipo: TipoProducto.MEDICAMENTO,
         medicamento: { principioActivo: 'X', concentracion: '1' },
-      } as unknown as CreateProductoDto;
+      } as CreateProductoDto;
 
       service.createProducto.mockRejectedValue(new BadRequestException('bad'));
 
@@ -68,4 +72,60 @@ describe('ProductoController', () => {
       expect(service.createProducto).toHaveBeenCalledWith(dto);
     });
   });
+
+  // 🧪 TESTS FALTANTES: obtenerProductosPorRegion
+  describe('obtenerProductosPorRegion', () => {
+    it('debería llamar al servicio con el país del usuario y retornar los productos', async () => {
+      const userRequest = { pais: 1 } as JwtPayloadDto;
+      const expected = [
+        { sku: 'SKU-001', nombre: 'Paracetamol', precio: 1000 },
+        { sku: 'SKU-002', nombre: 'Ibuprofeno', precio: 1500 },
+      ];
+
+      service.obtenerProductosDeUnaRegion.mockResolvedValue(expected);
+
+      const result = await controller.obtenerProductosPorRegion(userRequest);
+
+      expect(service.obtenerProductosDeUnaRegion).toHaveBeenCalledWith(1);
+      expect(result).toBe(expected);
+    });
+
+    it('debería lanzar el error si el servicio falla', async () => {
+      const userRequest = { pais: 1 } as JwtPayloadDto;
+      service.obtenerProductosDeUnaRegion.mockRejectedValue(
+        new BadRequestException('Error al obtener productos'),
+      );
+
+      await expect(controller.obtenerProductosPorRegion(userRequest)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(service.obtenerProductosDeUnaRegion).toHaveBeenCalledWith(1);
+    });
+  });
+  
+
+  describe('findById', () => {
+    it('debería llamar al servicio con el ID y retornar su resultado', async () => {
+      const expected = new ProductoDetalleResponseDto();
+      expected.id = 1;
+      expected.nombre = 'Paracetamol';
+      expected.tipo = 'medicamento';
+
+      service.findById.mockResolvedValue(expected);
+
+      const result = await controller.findById(1);
+
+      expect(service.findById).toHaveBeenCalledWith(1);
+      expect(result).toBe(expected);
+    });
+
+    it('debería propagar NotFoundException si el servicio lanza error', async () => {
+      service.findById.mockRejectedValue(new NotFoundException('No encontrado'));
+
+      await expect(controller.findById(999)).rejects.toThrow(NotFoundException);
+      expect(service.findById).toHaveBeenCalledWith(999);
+    });
+  });
+
+
 });

@@ -152,7 +152,8 @@ CREATE TABLE pais (
 CREATE TABLE usuarios.proveedor (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nombre VARCHAR(150) NOT NULL,
-    contacto VARCHAR(150),
+    contacto_principal VARCHAR(150),
+    telefono VARCHAR(20),
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );
@@ -161,3 +162,14 @@ CREATE TRIGGER trg_proveedor_updated
     BEFORE UPDATE ON usuarios.proveedor
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE usuarios.visita_cliente (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    cliente_id UUID NOT NULL REFERENCES usuarios.cliente(id) ON DELETE CASCADE,
+    vendedor_id UUID NOT NULL REFERENCES usuarios.vendedor(id) ON DELETE CASCADE,
+    fecha_visita TIMESTAMP NOT NULL,
+    estado VARCHAR(20) NOT NULL DEFAULT 'PROGRAMADA',
+    comentarios TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
