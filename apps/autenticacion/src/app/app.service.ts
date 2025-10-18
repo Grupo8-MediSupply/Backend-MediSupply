@@ -5,13 +5,17 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsuarioConsultaDto } from './dtos/response/usuario-consulta.dto';
 import { JwtPayloadDto } from '@medi-supply/shared';
+import { ConfigService } from '@nestjs/config';
+import { promises as fs } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class AppService {
   constructor(
     @Inject('IUsuariosRepository')
     private readonly usuariosRepository: IUsuariosRepository,
-    private jwtService: JwtService
+    private jwtService: JwtService,
+    private configService: ConfigService
   ) {}
 
 
@@ -57,4 +61,6 @@ export class AppService {
       access_token: token,
     };
   }
+
+
 }
