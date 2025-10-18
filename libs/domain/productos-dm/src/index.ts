@@ -5,3 +5,4 @@ export * from './lib/entities/equipo-medico.entity';
 export * from './lib/entities/producto.abstract.entity';
 export * from './lib/enums/product.types';
 export * from './lib/interfaces/repositories/IProducto.repository';
+export * from './lib/interfaces/entities/producto.info-region.interface';

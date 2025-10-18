@@ -152,7 +152,8 @@ CREATE TABLE pais (
 CREATE TABLE usuarios.proveedor (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nombre VARCHAR(150) NOT NULL,
-    contacto VARCHAR(150),
+    contacto_principal VARCHAR(150),
+    telefono VARCHAR(20),
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );

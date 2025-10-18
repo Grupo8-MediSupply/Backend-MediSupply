@@ -1,10 +1,21 @@
-import { IsString, IsOptional, IsEnum, IsNotEmpty, ValidateNested, IsDateString, IsNumber, Min, ValidateIf, Validate } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNotEmpty,
+  ValidateNested,
+  IsDateString,
+  IsNumber,
+  Min,
+  ValidateIf,
+  Validate,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export enum TipoProducto {
   MEDICAMENTO = 'medicamento',
   INSUMO_MEDICO = 'insumo_medico',
-  EQUIPO_MEDICO = 'equipo_medico'
+  EQUIPO_MEDICO = 'equipo_medico',
 }
 
 export class CreateProductoBaseDto {
@@ -33,68 +44,34 @@ export class CreateProductoMedicamentoDto {
   @IsString()
   @IsOptional()
   formaFarmaceutica?: string;
-
 }
 
 export class CreateProductoInsumoMedicoDto {
   @IsString()
+  material?: string;
   @IsOptional()
-  marca?: string;
+  esteril?: boolean = false;
 
-  @IsString()
   @IsOptional()
-  modelo?: string;
-
-  @IsString()
-  @IsOptional()
-  fabricante?: string;
-
-  @IsString()
-  @IsOptional()
-  unidad?: string;
-
-  @IsString()
-  @IsOptional()
-  lote?: string;
-
-  @IsDateString()
-  @IsOptional()
-  @Transform(({ value }) => value ? new Date(value).toISOString() : undefined)
-  fechaVencimiento?: string;
+  usoUnico?: boolean = false;
 }
 
 export class CreateProductoEquipoMedicoDto {
   @IsString()
-  @IsOptional()
   marca?: string;
-
   @IsString()
-  @IsOptional()
   modelo?: string;
-
-  @IsString()
-  @IsOptional()
-  numeroSerie?: string;
-
-  @IsString()
-  @IsOptional()
-  proveedor?: string;
-
-  @IsDateString()
-  @IsOptional()
-  @Transform(({ value }) => value ? new Date(value).toISOString() : undefined)
-  fechaCompra?: string;
-
   @IsNumber()
   @Min(0)
+  vidaUtil?: number;
   @IsOptional()
-  @Type(() => Number)
-  garantiaMeses?: number;
+  requiereMantenimiento?: boolean = false;
 }
 
 export class CreateProductoDto extends CreateProductoBaseDto {
   @IsEnum(TipoProducto, {
-    message: 'El tipo debe ser uno de los siguientes: medicamento, insumo_medico, equipo_medico'
+    message:
+      'El tipo debe ser uno de los siguientes: medicamento, insumo_medico, equipo_medico',
   })
   @IsNotEmpty()
   tipo!: TipoProducto;
@@ -102,21 +79,33 @@ export class CreateProductoDto extends CreateProductoBaseDto {
   @ValidateNested()
   @Type(() => CreateProductoMedicamentoDto)
   @ValidateIf((o) => o.tipo === TipoProducto.MEDICAMENTO)
-  @IsNotEmpty({ message: 'Los datos del medicamento son requeridos cuando el tipo es medicamento' })
+  @IsNotEmpty({
+    message:
+      'Los datos del medicamento son requeridos cuando el tipo es medicamento',
+  })
   medicamento?: CreateProductoMedicamentoDto;
 
   @ValidateNested()
   @Type(() => CreateProductoInsumoMedicoDto)
   @ValidateIf((o) => o.tipo === TipoProducto.INSUMO_MEDICO)
-  @IsNotEmpty({ message: 'Los datos del insumo médico son requeridos cuando el tipo es insumo_medico' })
+  @IsNotEmpty({
+    message:
+      'Los datos del insumo médico son requeridos cuando el tipo es insumo_medico',
+  })
   insumoMedico?: CreateProductoInsumoMedicoDto;
 
   @ValidateNested()
   @Type(() => CreateProductoEquipoMedicoDto)
   @ValidateIf((o) => o.tipo === TipoProducto.EQUIPO_MEDICO)
-  @IsNotEmpty({ message: 'Los datos del equipo médico son requeridos cuando el tipo es equipo_medico' })
+  @IsNotEmpty({
+    message:
+      'Los datos del equipo médico son requeridos cuando el tipo es equipo_medico',
+  })
   equipoMedico?: CreateProductoEquipoMedicoDto;
 }
 
 // Tipo helper para mapear el DTO a las entidades del dominio
-export type CreateProductoVariantDto = CreateProductoMedicamentoDto | CreateProductoInsumoMedicoDto | CreateProductoEquipoMedicoDto;
+export type CreateProductoVariantDto =
+  | CreateProductoMedicamentoDto
+  | CreateProductoInsumoMedicoDto
+  | CreateProductoEquipoMedicoDto;

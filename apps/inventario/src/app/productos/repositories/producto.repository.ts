@@ -4,12 +4,41 @@ import {
   ProductoInsumoMedico,
   ProductoMedicamento,
   ProductoVariant,
+  ProductoInfoRegion
 } from '@medi-supply/productos-dm';
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
 
 export class ProductoRepository implements IProductoRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+
+
+  async findByPais(regionId: number): Promise<ProductoInfoRegion[]> {
+    const productos = await this.db('productos.producto_regional as pr')
+  .join('productos.producto_global as pg', 'pg.id', 'pr.producto_global_id')
+  .leftJoin('productos.equipo_medico as eq', 'eq.producto_global_id', 'pg.id')
+  .leftJoin('productos.insumo_medico as ins', 'ins.producto_global_id', 'pg.id')
+  .leftJoin('productos.medicamento as med', 'med.producto_global_id', 'pg.id')
+  .select(
+    'pg.sku',
+    'pg.nombre',
+    'pg.descripcion',
+    'pr.precio',
+    'pr.id as productoRegionalId',
+    'pg.id as productoGlobalId',
+    this.db.raw(`
+      CASE
+        WHEN eq.producto_global_id IS NOT NULL THEN 'EQUIPO_MEDICO'
+        WHEN ins.producto_global_id IS NOT NULL THEN 'INSUMO_MEDICO'
+        WHEN med.producto_global_id IS NOT NULL THEN 'MEDICAMENTO'
+        ELSE 'DESCONOCIDO'
+      END AS tipo
+    `)
+  )
+  .where('pr.pais_id', regionId);
+  return productos;
+  }
+  
 
   async create(producto: ProductoVariant): Promise<ProductoVariant> {
     return this.db.transaction(async (trx) => {
@@ -41,22 +70,17 @@ export class ProductoRepository implements IProductoRepository {
         } else if (producto instanceof ProductoInsumoMedico) {
           await trx('productos.insumo_medico').insert({
             producto_global_id: global.id,
-            marca: producto.marca,
-            modelo: producto.modelo,
-            fabricante: producto.fabricante,
-            unidad: producto.unidad,
-            lote: producto.lote,
-            fecha_vencimiento: producto.fechaVencimiento ?? null,
+            material: producto.material,
+            esteril: producto.esteril,
+            uso_unico: producto.usoUnico,
           });
         } else if (producto instanceof ProductoEquipoMedico) {
           await trx('productos.equipo_medico').insert({
             producto_global_id: global.id,
             marca: producto.marca,
             modelo: producto.modelo,
-            numero_serie: producto.numeroSerie,
-            proveedor: producto.proveedor,
-            fecha_compra: producto.fechaCompra ?? null,
-            garantia_meses: producto.garantiaMeses ?? null,
+            vida_util: producto.vidaUtil,
+            requiere_mantenimiento: producto.requiereMantenimiento,
           });
         } else {
           throw new Error(`Tipo de producto no reconocido`);

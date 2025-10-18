@@ -1,29 +1,20 @@
 import { ProductoGlobal, ProductoPros } from "./producto.abstract.entity";
 
 interface ProductoInsumoMedicoProps extends ProductoPros {
-    marca?: string;
-    modelo?: string;
-    fabricante?: string;
-    unidad?: string;
-    lote?: string;
-    fechaVencimiento?: Date;
+    material?: string;
+    esteril?: boolean;
+    usoUnico?: boolean;
 }
 
 export class ProductoInsumoMedico extends ProductoGlobal {
-    readonly marca?: string;
-    readonly modelo?: string;
-    readonly fabricante?: string;
-    readonly unidad?: string;
-    readonly lote?: string;
-    readonly fechaVencimiento?: Date;
+    readonly material?: string;
+    readonly esteril?: boolean;
+    readonly usoUnico?: boolean;
 
     constructor(props: ProductoInsumoMedicoProps) {
         super(props);
-        this.marca = props.marca;
-        this.modelo = props.modelo;
-        this.fabricante = props.fabricante;
-        this.unidad = props.unidad;
-        this.lote = props.lote;
-        this.fechaVencimiento = props.fechaVencimiento;
+        this.material = props.material;
+        this.esteril = props.esteril;
+        this.usoUnico = props.usoUnico;
     }
 }
