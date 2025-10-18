@@ -2,10 +2,19 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { VendedoresController } from './vendedores.controller';
 import { VendedoresService } from './vendedores.service';
 import { CreateVendedorDto } from './dtos/request/create-vendedor.dto';
+import { JwtPayloadDto } from '@medi-supply/shared';
+import { VendedorResponseDto } from './dtos/response/vendedor.response.dto';
 
 describe('VendedoresController', () => {
   let controller: VendedoresController;
   let service: VendedoresService;
+
+  const payloadMock : JwtPayloadDto ={
+    sub: '1',
+    email: 'juan@example.com',
+    role: 1,
+    pais: 10
+  }
 
   beforeEach(async () => {
     const mockVendedoresService = {
@@ -36,17 +45,16 @@ describe('VendedoresController', () => {
       const dto: CreateVendedorDto = {
         nombre: 'Juan Pérez',
         email: 'juan@example.com',
-        territorio: 'COL',
       };
 
-      const expectedResult = { id: 1, ...dto };
+      const expectedResult : VendedorResponseDto = { email: dto.email, paisCreacion: payloadMock.pais.toString()};
       jest.spyOn(service, 'create').mockResolvedValue(expectedResult);
 
       // Act
-      const result = await controller.createVendedor(dto);
+      const result = await controller.createVendedor(dto, payloadMock);
 
       // Assert
-      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(service.create).toHaveBeenCalledWith(dto, payloadMock.pais);
       expect(result).toEqual(expectedResult);
     });
   });
