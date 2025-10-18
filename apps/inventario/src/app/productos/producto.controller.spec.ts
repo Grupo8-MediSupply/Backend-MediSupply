@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProductoController } from './producto.controller';
 import { ProductoService } from './producto.service';
 import { CreateProductoDto, TipoProducto } from './dtos/request/create-producto.dto';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
 
 describe('ProductoController', () => {
   let controller: ProductoController;
@@ -11,6 +12,7 @@ describe('ProductoController', () => {
   beforeEach(async () => {
     const mockProductoService = {
       createProducto: jest.fn(),
+      findById: jest.fn(),
     } as unknown as jest.Mocked<ProductoService>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -68,4 +70,29 @@ describe('ProductoController', () => {
       expect(service.createProducto).toHaveBeenCalledWith(dto);
     });
   });
+
+  describe('findById', () => {
+    it('debería llamar al servicio con el ID y retornar su resultado', async () => {
+      const expected = new ProductoDetalleResponseDto();
+      expected.id = 1;
+      expected.nombre = 'Paracetamol';
+      expected.tipo = 'medicamento';
+
+      service.findById.mockResolvedValue(expected);
+
+      const result = await controller.findById(1);
+
+      expect(service.findById).toHaveBeenCalledWith(1);
+      expect(result).toBe(expected);
+    });
+
+    it('debería propagar NotFoundException si el servicio lanza error', async () => {
+      service.findById.mockRejectedValue(new NotFoundException('No encontrado'));
+
+      await expect(controller.findById(999)).rejects.toThrow(NotFoundException);
+      expect(service.findById).toHaveBeenCalledWith(999);
+    });
+  });
+
+
 });
