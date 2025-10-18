@@ -40,6 +40,10 @@ import { UsuariosRepository } from './repositories/usuarios.repository';
               expiresIn: `${configService.get('JWT_EXPIRES_IN') || 3600}s`,
               issuer: jwtIssuer,
               audience: jwtAudience,
+              header: {
+                kid: 'mymainkey-1', // 🔑 aquí pones el mismo que en tu JWKS
+                alg: 'RS256',
+              },
             },
           };
         } else {
