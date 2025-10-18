@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ProductoService } from './producto.service';
 import { CreateProductoDto, TipoProducto } from './dtos/request/create-producto.dto';
 import {
@@ -8,6 +8,7 @@ import {
   type IProductoRepository,
   type ProductoVariant,
 } from '@medi-supply/productos-dm';
+import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
 
 describe('ProductoService (unit)', () => {
   let service: ProductoService;
@@ -159,62 +160,129 @@ describe('ProductoService (unit)', () => {
   });
 
   test('maneja insumo médico sin fechaVencimiento', async () => {
-  const dto: CreateProductoDto = {
-    sku: 'SKU-010',
-    nombre: 'Jeringa',
-    descripcion: 'Uso hospitalario',
-    tipo: TipoProducto.INSUMO_MEDICO,
-    insumoMedico: {
-      marca: 'MarcaZ',
-      modelo: 'XZ-10',
-      fabricante: 'FabZ',
-      unidad: 'unidad',
-      lote: 'L-999',
-      fechaVencimiento: undefined,
-    },
-  };
+    const dto: CreateProductoDto = {
+      sku: 'SKU-010',
+      nombre: 'Jeringa',
+      descripcion: 'Uso hospitalario',
+      tipo: TipoProducto.INSUMO_MEDICO,
+      insumoMedico: {
+        marca: 'MarcaZ',
+        modelo: 'XZ-10',
+        fabricante: 'FabZ',
+        unidad: 'unidad',
+        lote: 'L-999',
+        fechaVencimiento: undefined,
+      },
+    };
 
-  const createdFromRepo = { id: 'i-2' } as any;
-  mockRepo.create.mockResolvedValue(createdFromRepo);
+    const createdFromRepo = { id: 'i-2' } as any;
+    mockRepo.create.mockResolvedValue(createdFromRepo);
 
-  const result = await service.createProducto(dto);
+    const result = await service.createProducto(dto);
 
-  expect(mockRepo.create).toHaveBeenCalled();
-  const arg = mockRepo.create.mock.calls[0][0];
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  expect(arg.fechaVencimiento).toBeUndefined();
-  expect(result).toBe(createdFromRepo);
-});
+    expect(mockRepo.create).toHaveBeenCalled();
+    const arg = mockRepo.create.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    expect(arg.fechaVencimiento).toBeUndefined();
+    expect(result).toBe(createdFromRepo);
+  });
 
-test('maneja equipo médico sin fechaCompra', async () => {
-  const dto: CreateProductoDto = {
-    sku: 'SKU-011',
-    nombre: 'Balanza',
-    descripcion: 'Equipo de medición',
-    tipo: TipoProducto.EQUIPO_MEDICO,
-    equipoMedico: {
-      marca: 'MarcaQ',
-      modelo: 'Q-10',
-      numeroSerie: 'SN999',
-      proveedor: 'ProvQ',
-      fechaCompra: undefined,
+  test('maneja equipo médico sin fechaCompra', async () => {
+    const dto: CreateProductoDto = {
+      sku: 'SKU-011',
+      nombre: 'Balanza',
+      descripcion: 'Equipo de medición',
+      tipo: TipoProducto.EQUIPO_MEDICO,
+      equipoMedico: {
+        marca: 'MarcaQ',
+        modelo: 'Q-10',
+        numeroSerie: 'SN999',
+        proveedor: 'ProvQ',
+        fechaCompra: undefined,
+        garantiaMeses: 12,
+      },
+    };
+
+    const createdFromRepo = { id: 'e-2' } as any;
+    mockRepo.create.mockResolvedValue(createdFromRepo);
+
+    const result = await service.createProducto(dto);
+
+    expect(mockRepo.create).toHaveBeenCalled();
+    const arg = mockRepo.create.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    expect(arg.fechaCompra).toBeUndefined();
+    expect(result).toBe(createdFromRepo);
+  });
+
+  // NUEVAS PRUEBAS: findById
+  describe('findById', () => {
+    it('debería retornar un ProductoDetalleResponseDto para un medicamento', async () => {
+    const producto = new ProductoMedicamento({
+      id: 1,
+      sku: 'MED-001',
+      nombre: 'Paracetamol',
+      descripcion: 'Analgésico',
+      principioActivo: 'Paracetamol',
+      concentracion: '500mg',
+    });
+    mockRepo.findById.mockResolvedValue(producto);
+
+    const result = await service.findById(1);
+
+    expect(result).toBeInstanceOf(ProductoDetalleResponseDto);
+    expect(result.tipo).toBe('medicamento');
+    expect(result.detalleEspecifico).toBeDefined();
+    expect(result.detalleEspecifico!.principioActivo).toBe('Paracetamol');
+    expect(mockRepo.findById).toHaveBeenCalledWith(1);
+    });
+
+    it('debería retornar un ProductoDetalleResponseDto para un insumo médico', async () => {
+    const producto = new ProductoInsumoMedico({
+      id: 2,
+      sku: 'INS-001',
+      nombre: 'Guantes',
+      marca: 'SafeMed',
+      unidad: 'par',
+    });
+    mockRepo.findById.mockResolvedValue(producto);
+
+    const result = await service.findById(2);
+
+    expect(result.tipo).toBe('insumo_medico');
+    expect(result.detalleEspecifico).toBeDefined();
+    expect(result.detalleEspecifico!.marca).toBe('SafeMed');
+    expect(result.ubicacion).toBeDefined();
+    expect(result.regulaciones).toBeDefined();
+    });
+
+    it('debería retornar un ProductoDetalleResponseDto para un equipo médico', async () => {
+    const producto = new ProductoEquipoMedico({
+      id: 3,
+      sku: 'EQ-001',
+      nombre: 'Monitor de signos vitales',
+      marca: 'MedTech',
+      modelo: 'X200',
       garantiaMeses: 12,
-    },
-  };
+    });
+    mockRepo.findById.mockResolvedValue(producto);
 
-  const createdFromRepo = { id: 'e-2' } as any;
-  mockRepo.create.mockResolvedValue(createdFromRepo);
+    const result = await service.findById(3);
 
-  const result = await service.createProducto(dto);
-
-  expect(mockRepo.create).toHaveBeenCalled();
-  const arg = mockRepo.create.mock.calls[0][0];
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  expect(arg.fechaCompra).toBeUndefined();
-  expect(result).toBe(createdFromRepo);
-});
+    expect(result.tipo).toBe('equipo_medico');
+    expect(result.detalleEspecifico).toBeDefined();
+    expect(result.detalleEspecifico!.marca).toBe('MedTech');
+    expect(result.detalleEspecifico!.garantiaMeses).toBe(12);
+    });
 
 
+    it('debería lanzar NotFoundException si el producto no existe', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+
+      await expect(service.findById(999)).rejects.toBeInstanceOf(NotFoundException);
+      expect(mockRepo.findById).toHaveBeenCalledWith(999);
+    });
+  });
 });
