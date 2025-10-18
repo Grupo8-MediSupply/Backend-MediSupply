@@ -55,7 +55,12 @@ export class AppService {
       pais: user.pais,
     };
 
-    const token = await this.jwtService.signAsync(payload);
+    const token = await this.jwtService.signAsync(payload,{
+      header: {
+                kid: 'mymainkey-1', // 🔑 aquí pones el mismo que en tu JWKS
+                alg: 'RS256',
+              }
+    });
 
     return {
       access_token: token,
