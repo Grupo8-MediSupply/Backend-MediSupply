@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import * as jwt from 'jsonwebtoken';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -16,17 +16,30 @@ export class JwtReadGuard implements CanActivate {
     if (isPublic) return true;
 
     const req = context.switchToHttp().getRequest();
-    const authHeader = req.headers['authorization'] || '';
-    const token = authHeader.split(' ')[1];
 
-    if (!token) return false;
-
-    try {
-      req.user = jwt.decode(token); // 🔹 Decodifica sin validar
-    } catch {
-      req.user = null;
+    // 1️⃣ Intentar leer el header inyectado por GCP
+    const userInfoHeader = req.headers['x-apigateway-api-userinfo'];
+    if (userInfoHeader) {
+      try {
+        req.user = JSON.parse(userInfoHeader); // claims ya validados
+        return true;
+      } catch {
+        throw new UnauthorizedException('Error al leer la información del usuario en la nube');
+      }
     }
 
-    return !!req.user;
+    // 2️⃣ Si estamos en local, usar Authorization
+    const authHeader = req.headers['authorization'] || '';
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      throw new UnauthorizedException('No se encontró token en Authorization');
+    }
+
+    try {
+      req.user = jwt.decode(token); // decodifica sin validar
+      return true;
+    } catch {
+      throw new UnauthorizedException('Token inválido');
+    }
   }
 }
