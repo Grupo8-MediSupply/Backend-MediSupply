@@ -13,6 +13,7 @@ export class AppController {
     return await this.appService.login(login.email, login.password);
   }
 
+  @Public()
   @Get('jwks.json')
   async getJwks() {
     return {
