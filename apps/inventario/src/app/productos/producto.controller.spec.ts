@@ -11,7 +11,8 @@ describe('ProductoController', () => {
   beforeEach(async () => {
     const mockProductoService = {
       createProducto: jest.fn(),
-    } as unknown as jest.Mocked<ProductoService>;
+      obtenerProductosDeUnaRegion: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProductoController],
@@ -60,7 +61,7 @@ describe('ProductoController', () => {
         descripcion: 'Y',
         tipo: TipoProducto.MEDICAMENTO,
         medicamento: { principioActivo: 'X', concentracion: '1' },
-      } as unknown as CreateProductoDto;
+      } as CreateProductoDto;
 
       service.createProducto.mockRejectedValue(new BadRequestException('bad'));
 
