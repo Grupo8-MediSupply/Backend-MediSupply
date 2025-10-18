@@ -30,4 +30,9 @@ export class ProductoController {
       userRequest.pais
     );
   }
+
+  @Get(':id')
+  async findById(@Param('id', ParseIntPipe) id: number) {
+    return await this.productoService.findById(id);
+  }
 }

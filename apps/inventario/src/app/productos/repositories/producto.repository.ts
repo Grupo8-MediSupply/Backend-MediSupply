@@ -97,7 +97,90 @@ export class ProductoRepository implements IProductoRepository {
     });
   }
 
-  findById(id: number): Promise<ProductoVariant | null> {
-    throw new Error('Method not implemented.');
+   async findById(id: number): Promise<ProductoVariant | null> {
+    try {
+      // 1️⃣ Consultar producto base
+      const base = await this.db('productos.producto_global')
+        .select('*')
+        .where({ id })
+        .first();
+
+      if (!base) return null;
+
+      // 2️⃣ Buscar detalle en tabla medicamento
+      const medicamento = await this.db('productos.medicamento')
+        .select('*')
+        .where({ producto_global_id: id })
+        .first();
+
+      if (medicamento) {
+        return new ProductoMedicamento({
+          id: base.id,
+          sku: base.sku,
+          nombre: base.nombre,
+          descripcion: base.descripcion,
+          createdAt: base.created_at,
+          updatedAt: base.updated_at,
+          principioActivo: medicamento.principio_activo,
+          concentracion: medicamento.concentracion,
+          formaFarmaceutica: medicamento.forma_farmaceutica,
+          viaAdministracion: medicamento.via_administracion,
+          laboratorio: medicamento.laboratorio,
+          registroSanitario: medicamento.registro_sanitario,
+        });
+      }
+
+      // 3️⃣ Buscar detalle en tabla insumo_medico
+      const insumo = await this.db('productos.insumo_medico')
+        .select('*')
+        .where({ producto_global_id: id })
+        .first();
+
+      if (insumo) {
+        return new ProductoInsumoMedico({
+          id: base.id,
+          sku: base.sku,
+          nombre: base.nombre,
+          descripcion: base.descripcion,
+          createdAt: base.created_at,
+          updatedAt: base.updated_at,
+          marca: insumo.marca,
+          modelo: insumo.modelo,
+          fabricante: insumo.fabricante,
+          unidad: insumo.unidad,
+          lote: insumo.lote,
+          fechaVencimiento: insumo.fecha_vencimiento,
+        });
+      }
+
+      // 4️⃣ Buscar detalle en tabla equipo_medico
+      const equipo = await this.db('productos.equipo_medico')
+        .select('*')
+        .where({ producto_global_id: id })
+        .first();
+
+      if (equipo) {
+        return new ProductoEquipoMedico({
+          id: base.id,
+          sku: base.sku,
+          nombre: base.nombre,
+          descripcion: base.descripcion,
+          createdAt: base.created_at,
+          updatedAt: base.updated_at,
+          marca: equipo.marca,
+          modelo: equipo.modelo,
+          numeroSerie: equipo.numero_serie,
+          proveedor: equipo.proveedor,
+          fechaCompra: equipo.fecha_compra,
+          garantiaMeses: equipo.garantia_meses,
+        });
+      }
+
+      // Si no está en ninguna tabla hija
+      return null;
+    } catch (error) {
+      console.error('❌ Error al consultar producto por ID:', error);
+      throw new InternalServerErrorException('Error al consultar el producto.');
+    }
   }
 }

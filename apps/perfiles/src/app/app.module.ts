@@ -4,7 +4,10 @@ import { MediSupplyDatabaseModule } from '@medi-supply/database';
 import { MediSupplySharedModule } from '@medi-supply/shared';
 import { MediSupplyPerfilesDmModule } from '@medi-supply/perfiles-dm';
 import { VendedoresModule } from './vendedores/vendedores.module';
+import { ProveedoresModule } from './proveedores/proveedores.module';
 import { AppController } from './controller.controller';
+import { ClientesModule } from './clientes/clientes.module';
+import { VisitasModule } from './visitas/visitas.module';
 
 @Module({
   imports: [
@@ -13,6 +16,9 @@ import { AppController } from './controller.controller';
     MediSupplySharedModule,
     MediSupplyPerfilesDmModule,
     VendedoresModule,
+    ProveedoresModule,
+    ClientesModule,
+    VisitasModule,
   ],
   controllers: [AppController],
   providers: [],
