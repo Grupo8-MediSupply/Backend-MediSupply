@@ -1,15 +1,13 @@
-import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import * as jwt from 'jsonwebtoken';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private reflector: Reflector) {
-    super();
-  }
+export class JwtReadGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
 
-  override canActivate(context: ExecutionContext) {
+  canActivate(context: ExecutionContext): boolean {
     // Permitir rutas públicas
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
@@ -17,17 +15,18 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     ]);
     if (isPublic) return true;
 
-    return super.canActivate(context);
-  }
+    const req = context.switchToHttp().getRequest();
+    const authHeader = req.headers['authorization'] || '';
+    const token = authHeader.split(' ')[1];
 
-  // handleRequest se ejecuta después de validar token; info contiene errores tipo TokenExpiredError
-  override handleRequest(err: any, user: any, info: any) {
-    if (info?.name === 'TokenExpiredError') {
-      throw new UnauthorizedException('El token ha expirado. Por favor, renueva la sesión.');
+    if (!token) return false;
+
+    try {
+      req.user = jwt.decode(token); // 🔹 Decodifica sin validar
+    } catch {
+      req.user = null;
     }
-    if (err || !user) {
-      throw new UnauthorizedException(info?.message || 'Token inválido o ausente.');
-    }
-    return user;
+
+    return !!req.user;
   }
 }
