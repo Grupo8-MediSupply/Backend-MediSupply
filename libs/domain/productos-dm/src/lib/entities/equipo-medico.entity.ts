@@ -3,27 +3,22 @@ import { ProductoGlobal, ProductoPros } from "./producto.abstract.entity";
 interface ProductoEquipoMedicoProps extends ProductoPros {
     marca?: string;
     modelo?: string;
-    numeroSerie?: string;
-    proveedor?: string;
-    fechaCompra?: Date;
-    garantiaMeses?: number;
+    vidaUtil?: number;
+    requiereMantenimiento?: boolean;
 }
+
 
 export class ProductoEquipoMedico extends ProductoGlobal {
     readonly marca?: string;
     readonly modelo?: string;
-    readonly numeroSerie?: string;
-    readonly proveedor?: string;
-    readonly fechaCompra?: Date;
-    readonly garantiaMeses?: number;
+    readonly vidaUtil?: number;
+    readonly requiereMantenimiento?: boolean;
 
     constructor(props: ProductoEquipoMedicoProps) {
         super(props);
         this.marca = props.marca;
         this.modelo = props.modelo;
-        this.numeroSerie = props.numeroSerie;
-        this.proveedor = props.proveedor;
-        this.fechaCompra = props.fechaCompra;
-        this.garantiaMeses = props.garantiaMeses;
+        this.vidaUtil = props.vidaUtil;
+        this.requiereMantenimiento = props.requiereMantenimiento;
     }
 }

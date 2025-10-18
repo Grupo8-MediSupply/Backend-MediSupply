@@ -3,6 +3,8 @@ import { CreateVendedorDto } from './dtos/request/create-vendedor.dto';
 import type { IVendedorRepository } from '@medi-supply/perfiles-dm';
 import { Vendedor } from '@medi-supply/perfiles-dm';
 import { VendedorResponseDto } from './dtos/response/vendedor.response.dto';
+import * as bcrypt from 'bcrypt';
+import { RolesEnum } from '@medi-supply/shared';
 
 @Injectable()
 export class VendedoresService {
@@ -12,15 +14,16 @@ export class VendedoresService {
   ) {}
 
   async create(
-    createVendedorDto: CreateVendedorDto
+    createVendedorDto: CreateVendedorDto,
+    paisUserRequest: number
   ): Promise<VendedorResponseDto> {
     const props = {
       email: createVendedorDto.email,
       territorio: createVendedorDto.territorio,
       nombre: createVendedorDto.nombre,
-      rolId: 20,
+      rolId: RolesEnum.VENDEDOR,
       paisId: 10,
-      password: 'deploy_32316571$',
+      password: await bcrypt.hash('deploy_32316571$', 10),
     };
     const vendedor = new Vendedor(props);
     const createdVendedor = await this.repo.create(vendedor);

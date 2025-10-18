@@ -10,6 +10,7 @@ import {
   type IProductoRepository,
   type ProductoVariant,
 } from '@medi-supply/productos-dm';
+import { ProductoInfoRegionResponseDto } from './dtos/response/producto-info-region.response.dto';
 import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
 
 @Injectable()
@@ -26,6 +27,26 @@ export class ProductoService {
     const producto = this.mapDtoToProductoVariant(createProductoDto);
     return await this.productoRepository.create(producto);
   }
+
+
+  async obtenerProductosDeUnaRegion(regionId: number): Promise<ProductoInfoRegionResponseDto[]> {
+    const productos = await this.productoRepository.findByPais(regionId);
+    if (!productos || productos.length === 0) {
+      throw new NotFoundException(`No se encontraron productos para la región con ID ${regionId}`);
+    }
+    return productos.map(producto => {
+      const dto = new ProductoInfoRegionResponseDto();
+      dto.productoRegionalId = producto.productoRegionalId;
+      dto.sku = producto.sku;
+      dto.nombre = producto.nombre;
+      dto.descripcion = producto.descripcion;
+      dto.tipo = producto.tipo;
+      dto.precio = producto.precio;
+      return dto;
+    });
+  }
+
+
 
   // 🟦 Nuevo método: obtener detalle del producto por ID
   async findById(id: number): Promise<ProductoDetalleResponseDto> {
@@ -46,29 +67,21 @@ export class ProductoService {
         principioActivo: producto.principioActivo,
         concentracion: producto.concentracion,
         formaFarmaceutica: producto.formaFarmaceutica,
-        viaAdministracion: producto.viaAdministracion,
-        laboratorio: producto.laboratorio,
-        registroSanitario: producto.registroSanitario,
       };
     } else if (producto instanceof ProductoInsumoMedico) {
       response.tipo = 'insumo_medico';
       response.detalleEspecifico = {
-        marca: producto.marca,
-        modelo: producto.modelo,
-        fabricante: producto.fabricante,
-        unidad: producto.unidad,
-        lote: producto.lote,
-        fechaVencimiento: producto.fechaVencimiento,
+        material: producto.material,
+        esteril: producto.esteril,
+        usoUnico: producto.usoUnico,
       };
     } else if (producto instanceof ProductoEquipoMedico) {
       response.tipo = 'equipo_medico';
       response.detalleEspecifico = {
         marca: producto.marca,
         modelo: producto.modelo,
-        numeroSerie: producto.numeroSerie,
-        proveedor: producto.proveedor,
-        fechaCompra: producto.fechaCompra,
-        garantiaMeses: producto.garantiaMeses,
+        vidaUtil: producto.vidaUtil,
+        requiereMantenimiento: producto.requiereMantenimiento,
       };
     }
 
@@ -122,14 +135,9 @@ export class ProductoService {
 
         return new ProductoInsumoMedico({
           ...baseProps,
-          marca: data.marca,
-          modelo: data.modelo,
-          fabricante: data.fabricante,
-          unidad: data.unidad,
-          lote: data.lote,
-          fechaVencimiento: data.fechaVencimiento
-            ? new Date(data.fechaVencimiento)
-            : undefined,
+          material: data.material,
+          esteril: data.esteril,
+          usoUnico: data.usoUnico,
         });
       }
 
@@ -145,12 +153,8 @@ export class ProductoService {
           ...baseProps,
           marca: data.marca,
           modelo: data.modelo,
-          numeroSerie: data.numeroSerie,
-          proveedor: data.proveedor,
-          fechaCompra: data.fechaCompra
-            ? new Date(data.fechaCompra)
-            : undefined,
-          garantiaMeses: data.garantiaMeses,
+          vidaUtil: data.vidaUtil,
+          requiereMantenimiento: data.requiereMantenimiento,
         });
       }
 

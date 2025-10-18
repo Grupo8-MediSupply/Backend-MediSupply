@@ -7,6 +7,5 @@ export * from './lib/interfaces/repositories/Ivisita.repository.interface'
 export * from './lib/interfaces/repositories/Ivendedor.repository.interface';
 export * from './lib/interfaces/repositories/Iusuarios.repository.interface';
 export * from './lib/interfaces/repositories/Icliente.repository.interface';
-
 export * from './lib/entities/proveedor.entity';
 export * from './lib/interfaces/repositories/Iproveedor.repository.interface';

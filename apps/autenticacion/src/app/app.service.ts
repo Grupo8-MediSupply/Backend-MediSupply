@@ -4,6 +4,7 @@ import type { IUsuariosRepository } from '@medi-supply/perfiles-dm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsuarioConsultaDto } from './dtos/response/usuario-consulta.dto';
+import { JwtPayloadDto } from '@medi-supply/shared';
 
 @Injectable()
 export class AppService {
@@ -43,7 +44,7 @@ export class AppService {
   ): Promise<{ access_token: string }> {
     const user = await this.validateUser(email, password);
 
-    const payload = {
+    const payload : JwtPayloadDto = {
       sub: user.id,
       email: user.email,
       role: user.role,

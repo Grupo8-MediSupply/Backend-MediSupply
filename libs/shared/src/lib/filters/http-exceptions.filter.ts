@@ -59,7 +59,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // 🧩 Si no entra en ninguno de los anteriores
     else {
-      message = String(exception);
+      message = "Error al realizar la operación. Contáctese con soporte.";
     }
 
     const errorResponse = {
