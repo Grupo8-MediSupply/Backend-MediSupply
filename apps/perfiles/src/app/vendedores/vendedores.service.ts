@@ -19,10 +19,9 @@ export class VendedoresService {
   ): Promise<VendedorResponseDto> {
     const props = {
       email: createVendedorDto.email,
-      territorio: createVendedorDto.territorio,
       nombre: createVendedorDto.nombre,
       rolId: RolesEnum.VENDEDOR,
-      paisId: 10,
+      paisId: paisUserRequest,
       password: await bcrypt.hash('deploy_32316571$', 10),
     };
     const vendedor = new Vendedor(props);
