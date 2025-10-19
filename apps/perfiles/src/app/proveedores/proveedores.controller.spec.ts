@@ -31,7 +31,7 @@ describe('ProveedoresController', () => {
   });
 
   describe('createProveedor', () => {
-    it('debería llamar al servicio con el DTO correcto y retornar su resultado', async () => {
+    it('debería llamar al servicio con el DTO y pais correctos y retornar su resultado', async () => {
       // Arrange
       const dto: CreateProveedorDto = {
         nombreProveedor: 'Laboratorios Sanar',
@@ -42,14 +42,16 @@ describe('ProveedoresController', () => {
         telefonoContacto: '+57 3102345678',
       };
 
+      const mockToken = { pais: 1 } as any; // simula el @User()
+
       const expectedResult = { id: 'uuid-123', ...dto };
       jest.spyOn(service, 'create').mockResolvedValue(expectedResult as any);
 
       // Act
-      const result = await controller.createProveedor(dto);
+      const result = await controller.createProveedor(dto, mockToken);
 
       // Assert
-      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(service.create).toHaveBeenCalledWith(dto, mockToken.pais);
       expect(result).toEqual(expectedResult);
     });
   });

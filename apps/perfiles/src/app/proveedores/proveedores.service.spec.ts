@@ -28,6 +28,8 @@ describe('ProveedoresService (unit)', () => {
       telefonoContacto: '+57 3102345678',
     };
 
+    const paisId = 1;
+
     const createdFromRepo = {
       id: 'uuid-123',
       nombreProveedor: { Value: 'Laboratorios Sanar' },
@@ -38,7 +40,7 @@ describe('ProveedoresService (unit)', () => {
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
     // Act
-    const result = await service.create(dto);
+    const result = await service.create(dto, paisId);
 
     // Assert
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
@@ -60,9 +62,11 @@ describe('ProveedoresService (unit)', () => {
       telefonoContacto: '+56 912345678',
     };
 
+    const paisId = 2;
+
     mockRepo.create.mockResolvedValue(null as any);
 
-    await expect(service.create(dto)).rejects.toThrow();
+    await expect(service.create(dto, paisId)).rejects.toThrow();
     expect(mockRepo.create).toHaveBeenCalled();
   });
 
@@ -76,9 +80,11 @@ describe('ProveedoresService (unit)', () => {
       telefonoContacto: '+54 91122223333',
     };
 
+    const paisId = 3;
+
     const repoError = new Error('db failure');
     mockRepo.create.mockRejectedValue(repoError);
 
-    await expect(service.create(dto)).rejects.toThrow('db failure');
+    await expect(service.create(dto, paisId)).rejects.toThrow('db failure');
   });
 });
