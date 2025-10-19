@@ -2,12 +2,10 @@ import { IVendedorRepository, Vendedor } from "@medi-supply/perfiles-dm";
 import { Inject, InternalServerErrorException } from "@nestjs/common";
 import { Knex } from "knex";
 
-
 export class VendedorRepository implements IVendedorRepository {
-    constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+  constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
 
-
-   /**
+  /**
    * Crea un nuevo vendedor (y su usuario asociado) usando la generación
    * automática de UUID en la base de datos.
    */
@@ -96,5 +94,39 @@ export class VendedorRepository implements IVendedorRepository {
     }
   }
 
+  /**
+   * Obtiene todos los clientes asociados al país del vendedor
+   */
+  async findClientesByVendedorId(vendedorId: string): Promise<any[]> {
+    try {
+      // Primero obtenemos el país del vendedor
+      const vendedor = await this.db('usuarios.vendedor')
+        .join('usuarios.usuario', 'usuario.id', '=', 'vendedor.id')
+        .select('usuario.pais_id')
+        .where('vendedor.id', vendedorId)
+        .first();
 
+      if (!vendedor) {
+        throw new InternalServerErrorException('Vendedor no encontrado');
+      }
+
+      // Luego obtenemos todos los clientes que pertenecen a ese país
+      const clientes = await this.db('usuarios.cliente')
+        .join('usuarios.usuario', 'usuario.id', '=', 'cliente.id')
+        .select(
+          'cliente.id',
+          'cliente.nombre',
+          'cliente.tipo_institucion',
+          'cliente.clasificacion',
+          'cliente.responsable_contacto',
+          'usuario.email'
+        )
+        .where('usuario.pais_id', vendedor.pais_id);
+
+      return clientes;
+    } catch (error) {
+      console.error('❌ Error al obtener clientes del vendedor:', error);
+      throw new InternalServerErrorException('Error al listar los clientes.');
+    }
+  }
 }

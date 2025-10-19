@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Get, Param } from '@nestjs/common';
 import { CreateVendedorDto } from './dtos/request/create-vendedor.dto';
 import { VendedoresService } from './vendedores.service';
 import { Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
@@ -15,4 +15,11 @@ export class VendedoresController {
     createVendedor(@Body() createVendedorDto: CreateVendedorDto,@User() userRequest: JwtPayloadDto) {
         return this.vendedoresService.create(createVendedorDto, userRequest.pais);
     }
+
+    @UseGuards(RolesGuard)
+    @Roles(RolesEnum.VENDEDOR)
+    @Get(':id/clientes')
+    async obtenerClientes(@Param('id') id: string) {
+        return this.vendedoresService.obtenerClientesPorVendedor(id);
+  }
 }

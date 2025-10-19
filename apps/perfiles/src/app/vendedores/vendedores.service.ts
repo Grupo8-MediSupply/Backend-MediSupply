@@ -32,4 +32,18 @@ export class VendedoresService {
       createdVendedor.paisId.toString()
     );
   }
+
+  async obtenerClientesPorVendedor(vendedorId: string) {
+    const clientes = await this.repo.findClientesByVendedorId(vendedorId);
+
+    // Transformamos los resultados a un formato limpio tipo DTO
+    return clientes.map((c) => ({
+      id: c.id,
+      nombre: c.nombre,
+      tipoInstitucion: c.tipo_institucion,
+      clasificacion: c.clasificacion,
+      responsableContacto: c.responsable_contacto,
+      email: c.email,
+    }));
+  }
 }
