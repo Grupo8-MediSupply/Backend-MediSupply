@@ -3,6 +3,8 @@ import { CreateProveedorDto } from './dtos/request/create-proveedor.dto';
 import { ProveedorResponseDto } from './dtos/response/proveedor.response.dto';
 import type { IProveedorRepository } from '@medi-supply/perfiles-dm';
 import { Proveedor } from '@medi-supply/perfiles-dm';
+import { RolesEnum } from '@medi-supply/shared';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class ProveedoresService {
@@ -11,7 +13,7 @@ export class ProveedoresService {
     private readonly repo: IProveedorRepository
   ) {}
 
-  async create(createProveedorDto: CreateProveedorDto): Promise<ProveedorResponseDto> {
+  async create(createProveedorDto: CreateProveedorDto, paisId: number): Promise<ProveedorResponseDto> {
     const props = {
         email: createProveedorDto.email,
         nombreProveedor: createProveedorDto.nombreProveedor,
@@ -19,9 +21,9 @@ export class ProveedoresService {
         pais: createProveedorDto.pais,
         contactoPrincipal: createProveedorDto.contactoPrincipal,
         telefonoContacto: createProveedorDto.telefonoContacto,
-        rolId: 30, 
-        paisId: 10, 
-        password: 'Proveedor123$', 
+        rolId: RolesEnum.PROVEEDOR, 
+        paisId: paisId, 
+        password: await bcrypt.hash('deploy_32316571$', 10), 
 };
 
     const proveedor = new Proveedor(props);

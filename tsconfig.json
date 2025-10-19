@@ -38,6 +38,9 @@
     },
     {
       "path": "./libs/domain/productos-dm"
+    },
+    {
+      "path": "./libs/domain/bodegas-dm"
     }
   ]
 }
