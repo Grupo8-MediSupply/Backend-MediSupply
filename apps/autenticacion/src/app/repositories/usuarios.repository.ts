@@ -14,12 +14,14 @@ export class UsuariosRepository implements IUsuariosRepository {
             return null;
         }
 
-        return {
+        return new Usuario({
             id: usuarioRow.id,
             email: usuarioRow.email,
-            password: usuarioRow.password_hash,
             rolId: usuarioRow.rol_id,
             paisId: usuarioRow.pais_id,
-        } as Usuario;
+            password: usuarioRow.password_hash,
+            createdAt: usuarioRow.created_at,
+            updatedAt: usuarioRow.updated_at,
+        });
     }
 }

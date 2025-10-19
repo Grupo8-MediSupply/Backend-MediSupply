@@ -17,7 +17,7 @@ export abstract class ProductoGlobal extends BaseEntity<number> {
 
     constructor(props: ProductoPros){
         super({
-            id: props.id,
+            id: props.id ?? 0,
             createdAt: props.createdAt,
             updatedAt: props.updatedAt,
         });
