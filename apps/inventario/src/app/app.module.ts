@@ -5,6 +5,7 @@ import { MediSupplySharedModule } from '@medi-supply/shared';
 import { ProductoModule } from './productos/producto.module';
 import { MediSupplyProductosDmModule } from '@medi-supply/productos-dm';
 import { ProductosRegulacionModule } from './productos-regulacion/productos-regulacion.module';
+import { BodegasModule } from './bodegas/bodegas.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ProductosRegulacionModule } from './productos-regulacion/productos-regu
     MediSupplyProductosDmModule,
     ProductoModule,
     ProductosRegulacionModule,
+    BodegasModule,
   ],
 })
 export class AppModule {}
