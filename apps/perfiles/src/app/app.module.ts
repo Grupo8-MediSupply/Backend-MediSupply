@@ -8,6 +8,7 @@ import { ProveedoresModule } from './proveedores/proveedores.module';
 import { AppController } from './controller.controller';
 import { ClientesModule } from './clientes/clientes.module';
 import { VisitasModule } from './visitas/visitas.module';
+import { PaisesModule } from './paises/paises.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { VisitasModule } from './visitas/visitas.module';
     ProveedoresModule,
     ClientesModule,
     VisitasModule,
+    PaisesModule,
   ],
   controllers: [AppController],
   providers: [],

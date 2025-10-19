@@ -4,6 +4,7 @@ import { MediSupplyDatabaseModule } from '@medi-supply/database';
 import { MediSupplySharedModule } from '@medi-supply/shared';
 import { ProductoModule } from './productos/producto.module';
 import { MediSupplyProductosDmModule } from '@medi-supply/productos-dm';
+import { ProductosRegulacionModule } from './productos-regulacion/productos-regulacion.module';
 
 @Module({
   imports: [
@@ -12,8 +13,7 @@ import { MediSupplyProductosDmModule } from '@medi-supply/productos-dm';
     MediSupplySharedModule,
     MediSupplyProductosDmModule,
     ProductoModule,
+    ProductosRegulacionModule,
   ],
-  controllers: [],
-  providers: [],
 })
 export class AppModule {}
