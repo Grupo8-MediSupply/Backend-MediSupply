@@ -8,14 +8,14 @@ export class ProductosRegulacionController {
 
   @Post()
   asociarRegulaciones(
-    @Param('productoId', ParseIntPipe) productoId: number,
+    @Param('producto_id', ParseIntPipe) productoId: number,
     @Body() dto: ProductoRegulacionDto,
   ) {
     return this.service.asociarRegulaciones(productoId, dto.regulacionIds);
   }
 
   @Get()
-  listarPorProducto(@Param('productoId', ParseIntPipe) productoId: number) {
+  listarPorProducto(@Param('producto_id', ParseIntPipe) productoId: number) {
     return this.service.listarPorProducto(productoId);
   }
 }
