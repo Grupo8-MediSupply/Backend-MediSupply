@@ -13,7 +13,7 @@ import { CreateProductoDto } from './dtos/request/create-producto.dto';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 import { Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
 
-@Controller('producto')
+@Controller('v1/producto')
 export class ProductoController {
   constructor(private readonly productoService: ProductoService) {}
 
