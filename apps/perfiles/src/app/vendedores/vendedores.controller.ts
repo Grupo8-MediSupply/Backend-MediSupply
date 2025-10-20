@@ -4,7 +4,7 @@ import { VendedoresService } from './vendedores.service';
 import { Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 
-@Controller('vendedores')
+@Controller('v1/vendedores')
 export class VendedoresController {
 
     constructor(private readonly vendedoresService: VendedoresService) {}

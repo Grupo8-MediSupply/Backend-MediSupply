@@ -2,7 +2,7 @@ import { Controller, Post, Patch, Body, Param, Get } from '@nestjs/common';
 import { VisitasService } from './visitas.service';
 import { EstadoVisita } from '@medi-supply/perfiles-dm';
 
-@Controller('visitas')
+@Controller('v1/visitas')
 export class VisitasController {
   constructor(private readonly visitasService: VisitasService) {}
 

@@ -4,7 +4,7 @@ import { ProveedoresService } from './proveedores.service';
 import { Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 
-@Controller('proveedores')
+@Controller('v1/proveedores')
 export class ProveedoresController {
   constructor(private readonly proveedoresService: ProveedoresService) {}
   
