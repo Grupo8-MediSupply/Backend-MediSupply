@@ -3,7 +3,7 @@ import { AppService } from './app.service';
 import { LoginDto } from './dtos/request/login.dto';
 import { Public } from '@medi-supply/shared';
 
-@Controller()
+@Controller('v1')
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
