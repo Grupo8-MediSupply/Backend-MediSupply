@@ -7,6 +7,7 @@ export class Bodega {
   readonly responsable: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly estado: boolean;
 
   constructor(props: {
     id: string;
@@ -17,6 +18,7 @@ export class Bodega {
     responsable: string;
     createdAt: Date;
     updatedAt: Date;
+    estado: boolean;
   }) {
     this.id = props.id;
     this.paisId = props.paisId;
@@ -26,6 +28,7 @@ export class Bodega {
     this.responsable = props.responsable;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
+    this.estado = props.estado;
   }
 
   toPrimitives() {
@@ -38,6 +41,7 @@ export class Bodega {
       responsable: this.responsable,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      estado: this.estado,
     };
   }
 }

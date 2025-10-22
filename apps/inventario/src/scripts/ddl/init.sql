@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS logistica.bodega (
     ubicacion VARCHAR(255),
     capacidad INT,
     responsable VARCHAR(150),
+    estado BOOLEAN, -- nueva columna: estado (boolean)
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );

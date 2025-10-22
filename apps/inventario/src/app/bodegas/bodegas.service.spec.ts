@@ -2,10 +2,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BodegasService } from './bodegas.service';
 import { IBodegaRepository, Bodega } from '@medi-supply/bodegas-dm';
 import { BodegaResponseDto } from './dtos/response/bodega.response.dto';
+import { JwtPayloadDto } from '@medi-supply/shared';
+import { NotFoundException } from '@nestjs/common';
 
 describe('BodegasService', () => {
   let service: BodegasService;
   let mockRepo: jest.Mocked<IBodegaRepository>;
+  const jwt: JwtPayloadDto = {
+    sub: 'user-123',
+    email: 'testuser',
+    pais: 1,
+    role: 1,
+  }
 
   const mockBodega = new Bodega({
     id: 'uuid-123',
@@ -16,12 +24,14 @@ describe('BodegasService', () => {
     responsable: 'Juan Pérez',
     createdAt: new Date('2025-01-01T00:00:00Z'),
     updatedAt: new Date('2025-01-02T00:00:00Z'),
+    estado: true,
   });
 
   beforeEach(async () => {
     mockRepo = {
       findAll: jest.fn(),
       findById: jest.fn(),
+      findByPaisId: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -58,7 +68,7 @@ describe('BodegasService', () => {
     it('should return a bodega when found', async () => {
       mockRepo.findById.mockResolvedValue(mockBodega);
 
-      const result = await service.findById('uuid-123');
+      const result = await service.findById('uuid-123', jwt);
 
       expect(result).toBeInstanceOf(BodegaResponseDto);
       expect(result?.id).toBe('uuid-123');
@@ -66,12 +76,10 @@ describe('BodegasService', () => {
       expect(mockRepo.findById).toHaveBeenCalledWith('uuid-123');
     });
 
-    it('should return null when bodega not found', async () => {
+    it('should return not found when bodega not found', async () => {
       mockRepo.findById.mockResolvedValue(null);
 
-      const result = await service.findById('no-existe');
-
-      expect(result).toBeNull();
+      await expect(service.findById('no-existe', jwt)).rejects.toThrow(NotFoundException);
       expect(mockRepo.findById).toHaveBeenCalledWith('no-existe');
     });
   });
