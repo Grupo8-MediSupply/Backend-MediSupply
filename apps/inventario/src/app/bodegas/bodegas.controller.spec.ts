@@ -2,10 +2,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BodegasController } from './bodegas.controller';
 import { BodegasService } from './bodegas.service';
 import { BodegaResponseDto } from './dtos/response/bodega.response.dto';
+import { JwtPayloadDto } from '@medi-supply/shared';
+import { find } from 'rxjs';
 
 describe('BodegasController', () => {
   let controller: BodegasController;
   let service: BodegasService;
+  const jwt: JwtPayloadDto = {
+      sub: 'user-123',
+      email: 'testuser',
+      pais: 1,
+      role: 1,
+    }
 
   const mockBodegaDto = new BodegaResponseDto(
     'uuid-123',
@@ -21,6 +29,8 @@ describe('BodegasController', () => {
   const mockService = {
     findAll: jest.fn(),
     findById: jest.fn(),
+    findByPaisId: jest.fn(),
+
   };
 
   beforeEach(async () => {
@@ -44,13 +54,13 @@ describe('BodegasController', () => {
 
   describe('listarBodegas', () => {
     it('should return an array of bodegas', async () => {
-      mockService.findAll.mockResolvedValue([mockBodegaDto]);
+      mockService.findByPaisId.mockResolvedValue([mockBodegaDto]);
 
-      const result = await controller.listarBodegas();
+      const result = await controller.listarBodegas(jwt);
 
       expect(result).toHaveLength(1);
       expect(result[0].nombre).toBe('Bodega Central');
-      expect(service.findAll).toHaveBeenCalledTimes(1);
+      expect(service.findByPaisId).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -58,21 +68,21 @@ describe('BodegasController', () => {
     it('should return a bodega by id', async () => {
   mockService.findById.mockResolvedValue(mockBodegaDto);
 
-  const result = await controller.obtenerBodega('uuid-123');
+  const result = await controller.obtenerBodega('uuid-123', jwt);
 
   expect(result!).toBeInstanceOf(BodegaResponseDto);
   expect(result!.nombre).toBe('Bodega Central');
-  expect(service.findById).toHaveBeenCalledWith('uuid-123');
+  expect(service.findById).toHaveBeenCalledWith('uuid-123', jwt);
 });
 
 
     it('should return null when no bodega is found', async () => {
       mockService.findById.mockResolvedValue(null);
 
-      const result = await controller.obtenerBodega('uuid-x');
+      const result = await controller.obtenerBodega('uuid-x', jwt);
 
       expect(result).toBeNull();
-      expect(service.findById).toHaveBeenCalledWith('uuid-x');
+      expect(service.findById).toHaveBeenCalledWith('uuid-x', jwt);
     });
   });
 });

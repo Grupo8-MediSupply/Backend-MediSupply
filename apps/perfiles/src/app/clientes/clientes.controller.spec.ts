@@ -39,6 +39,10 @@ describe('ClientesController', () => {
         clasificacion: 'Alta complejidad',
         responsableContacto: 'Dra. Laura Gómez',
         email: 'contacto@clinicasantamaria.com',
+        pais: 2,
+        identificacion: '123456789',
+        password: 'securepassword',
+        tipoIdentificacion: 1,
       };
 
       const expectedResult = { id: 'uuid-123', ...dto };

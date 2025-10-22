@@ -13,6 +13,6 @@ export class VendedoresController {
     @Roles(RolesEnum.ADMIN)
     @Post()
     createVendedor(@Body() createVendedorDto: CreateVendedorDto,@User() userRequest: JwtPayloadDto) {
-        return this.vendedoresService.create(createVendedorDto, userRequest.pais);
+        return this.vendedoresService.create(createVendedorDto, userRequest);
     }
 }

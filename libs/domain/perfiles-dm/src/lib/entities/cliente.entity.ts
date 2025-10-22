@@ -17,6 +17,8 @@ export class Cliente extends Usuario {
     tipoInstitucion?: string;
     clasificacion?: string;
     responsableContacto?: string;
+    identificacion: string;
+    tipoIdentificacion: number;
   }) {
     super({
       id: props.id,
@@ -24,6 +26,8 @@ export class Cliente extends Usuario {
       rolId: props.rolId,
       paisId: props.paisId,
       password: props.password,
+      identificacion: props.identificacion,
+      tipoIdentificacion: props.tipoIdentificacion,
     });
 
     this.nombre = new Nombre(props.nombre);
@@ -43,6 +47,8 @@ export class Cliente extends Usuario {
       clasificacion: this.clasificacion,
       responsableContacto: this.responsableContacto,
       password: this.password,
+      identificacion: this.identificacion,
+      tipoIdentificacion: this.tipoIdentificacion,
     };
   }
 }

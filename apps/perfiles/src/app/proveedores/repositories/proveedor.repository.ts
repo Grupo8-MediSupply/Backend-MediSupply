@@ -11,9 +11,11 @@ export class ProveedorRepository implements IProveedorRepository {
       const [usuario] = await trx('usuarios.usuario')
         .insert({
           email: proveedor.email.Value,
-          password_hash: proveedor.password,
-          rol_id: proveedor.rolId,
-          pais_id: proveedor.paisId,
+            identificacion: proveedor.identificacion,
+            tipo_identificacion_id: proveedor.tipoIdentificacion,
+            rol_id: proveedor.rolId,
+            pais_id: proveedor.paisId,
+            password_hash: proveedor.password,
         })
         .returning(['id']);
 
@@ -31,14 +33,14 @@ export class ProveedorRepository implements IProveedorRepository {
       return new Proveedor({
         id: created.id,
         email: proveedor.email.Value,
-        pais: proveedor.pais,
+        paisId: proveedor.paisId,
         nombreProveedor: proveedor.nombreProveedor.Value,
-        numeroIdentificacion: proveedor.numeroIdentificacion,
+        numeroIdentificacion: proveedor.identificacion,
         contactoPrincipal: proveedor.contactoPrincipal.Value,
         telefonoContacto: proveedor.telefonoContacto,
         rolId: proveedor.rolId,
-        paisId: proveedor.paisId,
         password: proveedor.password,
+        tipoIdentificacion: proveedor.tipoIdentificacion,
       });
     } catch (error) {
       await trx.rollback();
@@ -49,17 +51,18 @@ export class ProveedorRepository implements IProveedorRepository {
 
   async findById(id: string): Promise<Proveedor | null> {
     try {
-      const proveedor = await this.db('proveedor')
+      const proveedor = await this.db('usuarios.proveedor')
         .select(
           'proveedor.id',
-          'proveedor.nombre_proveedor',
-          'proveedor.numero_identificacion',
-          'proveedor.pais',
-          'proveedor.email',
+          'proveedor.nombre',
           'proveedor.contacto_principal',
           'proveedor.telefono_contacto',
+          'usuario.email',
           'usuario.rol_id',
-          'usuario.pais_id'
+          'usuario.pais_id',
+          'usuario.password',
+          'usuario.identificacion',
+          'usuario.tipo_identificacion'
         )
         .innerJoin('usuario', 'usuario.id', 'proveedor.usuario_id')
         .where('proveedor.id', id)
@@ -70,14 +73,14 @@ export class ProveedorRepository implements IProveedorRepository {
       return new Proveedor({
         id: proveedor.id,
         email: proveedor.email,
-        pais: proveedor.pais,
-        nombreProveedor: proveedor.nombre_proveedor,
-        numeroIdentificacion: proveedor.numero_identificacion,
+        nombreProveedor: proveedor.nombre,
+        numeroIdentificacion: proveedor.identificacion,
         contactoPrincipal: proveedor.contacto_principal,
         telefonoContacto: proveedor.telefono_contacto,
         rolId: proveedor.rol_id,
         paisId: proveedor.pais_id,
         password: '***',
+        tipoIdentificacion: proveedor.tipo_identificacion,
       });
     } catch (error) {
       console.error('❌ Error al buscar proveedor por ID:', error);

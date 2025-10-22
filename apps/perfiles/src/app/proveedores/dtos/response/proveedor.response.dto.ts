@@ -1,5 +1,5 @@
 import { Expose } from 'class-transformer';
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsNumber, IsString } from 'class-validator';
 
 export class ProveedorResponseDto {
   @Expose()
@@ -14,10 +14,10 @@ export class ProveedorResponseDto {
   email?: string;
 
   @Expose()
-  @IsString()
-  pais?: string;
+  @IsNumber()
+  pais?: number;
 
-  constructor(id: string, nombreProveedor: string, email: string, pais: string) {
+  constructor(id: string, nombreProveedor: string, email: string, pais: number) {
     this.id = id;
     this.nombreProveedor = nombreProveedor;
     this.email = email;

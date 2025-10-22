@@ -12,7 +12,8 @@ export class Vendedor extends Usuario {
     paisId: number;
     password: string;
     nombre: string;
-    territorio?: string;
+    identificacion: string;
+    tipoIdentificacion: number;
   }) {
     super({
       id: props.id,
@@ -20,10 +21,11 @@ export class Vendedor extends Usuario {
       rolId: props.rolId,
       paisId: props.paisId,
       password: props.password,
+      identificacion: props.identificacion,
+      tipoIdentificacion: props.tipoIdentificacion,
     });
 
     this.nombre = new Nombre(props.nombre);
-    this.territorio = props.territorio;
   }
 
   toPrimitives() {
@@ -33,8 +35,9 @@ export class Vendedor extends Usuario {
       rolId: this.rolId,
       paisId: this.paisId,
       nombre: this.nombre.Value,
-      territorio: this.territorio,
       password: this.password,
+      identificacion: this.identificacion,
+      tipoIdentificacion: this.tipoIdentificacion,
     };
   }
 }

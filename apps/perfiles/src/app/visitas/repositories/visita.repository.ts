@@ -27,16 +27,14 @@ export class VisitaRepository implements IVisitaRepository {
         })
         .returning('*');
 
-      return new VisitaCliente(
-        created.id,
-        created.cliente_id,
-        created.vendedor_id,
-        created.fecha_visita,
-        created.estado,
-        created.comentarios,
-        created.created_at,
-        created.updated_at,
-      );
+      return new VisitaCliente({
+        id: created.id,
+        clienteId: created.cliente_id,
+        vendedorId: created.vendedor_id,
+        fechaVisita: created.fecha_visita,
+        estado: created.estado,
+        comentarios: created.comentarios,
+      });
     } catch (error) {
       console.error('Error creando visita:', error);
       throw new InternalServerErrorException('Error al registrar la visita');
@@ -49,18 +47,15 @@ export class VisitaRepository implements IVisitaRepository {
         .where({ cliente_id: clienteId })
         .orderBy('fecha_visita', 'desc');
 
-      return visitas.map(
-        (v) =>
-          new VisitaCliente(
-            v.id,
-            v.cliente_id,
-            v.vendedor_id,
-            v.fecha_visita,
-            v.estado,
-            v.comentarios,
-            v.created_at,
-            v.updated_at,
-          ),
+      return visitas.map((v) =>
+        new VisitaCliente({
+          id: v.id,
+          clienteId: v.cliente_id,
+          vendedorId: v.vendedor_id,
+          fechaVisita: v.fecha_visita,
+          estado: v.estado,
+          comentarios: v.comentarios,
+        })
       );
     } catch (error) {
       console.error('Error listando visitas:', error);

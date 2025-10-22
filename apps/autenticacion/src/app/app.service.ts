@@ -54,11 +54,16 @@ export class AppService {
       role: user.role,
       pais: user.pais,
     };
+    const isProd = this.configService.get<string>('NODE_ENV') === 'production';
+
+    const algorithm = isProd ? 'RS256' : 'HS256';
 
     const token = await this.jwtService.signAsync(payload,{
+
+
       header: {
                 kid: 'mymainkey-1', // 🔑 aquí pones el mismo que en tu JWKS
-                alg: 'RS256',
+                alg: algorithm,
               }
     });
 

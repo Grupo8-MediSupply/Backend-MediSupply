@@ -80,13 +80,8 @@ CREATE TABLE IF NOT EXISTS productos.producto_regional (
     producto_global_id BIGINT NOT NULL REFERENCES productos.producto_global(id),
     pais_id BIGINT NOT NULL, -- Removed reference since geografia.pais may not exist
     proveedor_id UUID NOT NULL, -- Removed reference since usuarios.proveedor may not exist
-
-    -- nueva FK para relacionar la regulación aplicable a este producto en ese país
     regulacion_id UUID REFERENCES regulacion.regulacion(id),
     precio NUMERIC(12,2) NOT NULL,
-    moneda VARCHAR(10),
-    disponible BOOLEAN DEFAULT true,
-    estado_registro_sanitario VARCHAR(100),
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );
@@ -129,6 +124,7 @@ CREATE TABLE IF NOT EXISTS logistica.bodega (
     ubicacion VARCHAR(255),
     capacidad INT,
     responsable VARCHAR(150),
+    estado BOOLEAN, -- nueva columna: estado (boolean)
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );

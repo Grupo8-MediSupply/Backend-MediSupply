@@ -4,6 +4,22 @@ import { IBodegaRepository, Bodega } from '@medi-supply/bodegas-dm';
 
 export class BodegaRepository implements IBodegaRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+  findByPaisId(paisId: number): Promise<Bodega[]> {
+    return this.db('logistica.bodega')
+      .select(
+        'id',
+        'pais_id as paisId',
+        'nombre',
+        'ubicacion',
+        'capacidad',
+        'responsable',
+        'created_at as createdAt',
+        'updated_at as updatedAt',
+        'estado'
+      )
+      .where({ pais_id:paisId })
+      .then((rows) => rows.map((r) => new Bodega(r)));
+  }
 
   async findAll(): Promise<Bodega[]> {
     try {
@@ -31,6 +47,7 @@ export class BodegaRepository implements IBodegaRepository {
             responsable: r.responsable,
             createdAt: r.createdAt,
             updatedAt: r.updatedAt,
+            estado: r.estado,
           }),
       );
     } catch (error) {
@@ -66,6 +83,7 @@ export class BodegaRepository implements IBodegaRepository {
         responsable: record.responsable,
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
+        estado: record.estado,
       });
     } catch (error) {
       console.error('❌ Error al consultar bodega:', error);
