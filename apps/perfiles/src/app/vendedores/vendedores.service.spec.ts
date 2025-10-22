@@ -3,10 +3,12 @@ import { CreateVendedorDto } from './dtos/request/create-vendedor.dto';
 import { VendedorResponseDto } from './dtos/response/vendedor.response.dto';
 import { Vendedor } from '@medi-supply/perfiles-dm';
 import type { IVendedorRepository } from '@medi-supply/perfiles-dm';
+import { JwtPayloadDto } from '@medi-supply/shared';
 
 describe('VendedoresService (unit)', () => {
   let service: VendedoresService;
   let mockRepo: jest.Mocked<IVendedorRepository>;
+  let jwt : JwtPayloadDto;
 
   beforeEach(() => {
     mockRepo = {
@@ -15,14 +17,22 @@ describe('VendedoresService (unit)', () => {
     } as jest.Mocked<IVendedorRepository>;
 
     service = new VendedoresService(mockRepo);
+
+    jwt = {
+      sub: 'user123',
+      email: 'ana@ejemplo.com',
+      role: 1,
+      pais: 51,
+    };
   });
 
   test('crea vendedor correctamente y devuelve VendedorResponseDto', async () => {
     // Arrange
     const dto: CreateVendedorDto = {
-      nombre: 'Juan',
-      email: 'juan@ejemplo.com',
-      territorio: 'PE',
+      nombre: 'Ana',
+      email: 'ana@ejemplo.com',
+      identificacion: '123456',
+      tipoIdentificacion: 1,
     };
 
     const createdFromRepo = {
@@ -34,7 +44,7 @@ describe('VendedoresService (unit)', () => {
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
     // Act
-    const result = await service.create(dto);
+    const result = await service.create(dto, jwt);
 
     // Assert
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
@@ -48,12 +58,13 @@ describe('VendedoresService (unit)', () => {
     const dto: CreateVendedorDto = {
       nombre: 'Ana',
       email: 'ana@ejemplo.com',
-      territorio: 'CL',
+      identificacion: '123456',
+      tipoIdentificacion: 1,
     };
 
     mockRepo.create.mockResolvedValue(null as any);
 
-    await expect(service.create(dto)).rejects.toThrow();
+    await expect(service.create(dto, jwt)).rejects.toThrow();
     expect(mockRepo.create).toHaveBeenCalled();
   });
 
@@ -61,12 +72,12 @@ describe('VendedoresService (unit)', () => {
     const dto: CreateVendedorDto = {
       nombre: 'Pedro',
       email: 'pedro@ejemplo.com',
-      territorio: 'AR',
-    };
+      identificacion: '654321',
+      tipoIdentificacion: 2,};
 
     const repoError = new Error('db failure');
     mockRepo.create.mockRejectedValue(repoError);
 
-    await expect(service.create(dto)).rejects.toThrow('db failure');
+    await expect(service.create(dto, jwt)).rejects.toThrow('db failure');
   });
 });

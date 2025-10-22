@@ -2,10 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { VisitasController } from './visitas.controller';
 import { VisitasService } from './visitas.service';
 import { EstadoVisita } from '@medi-supply/perfiles-dm';
+import { JwtPayloadDto } from '@medi-supply/shared';
 
 describe('VisitasController (unit)', () => {
   let controller: VisitasController;
   let service: VisitasService;
+    let jwt : JwtPayloadDto;
+  
 
   beforeEach(async () => {
     const mockVisitasService = {
@@ -27,6 +30,13 @@ describe('VisitasController (unit)', () => {
 
     controller = module.get<VisitasController>(VisitasController);
     service = module.get<VisitasService>(VisitasService);
+
+    jwt = {
+      sub: 'user123',
+      email: 'ana@ejemplo.com',
+      role: 1,
+      pais: 51,
+    };
   });
 
   it('debería estar definido', () => {
@@ -37,21 +47,18 @@ describe('VisitasController (unit)', () => {
   it('debería llamar al servicio registrarVisita con los datos correctos', async () => {
     const body = {
       clienteId: 'uuid-cliente',
-      vendedorId: 'uuid-vendedor',
-      fechaVisita: '2025-10-25T14:00:00Z',
+      fechaVisita: new Date('2024-07-01T10:00:00Z'),
       comentarios: 'Visita de prueba',
     };
 
     const expected = { id: 'uuid-visita', ...body };
     jest.spyOn(service, 'registrarVisita').mockResolvedValue(expected as any);
 
-    const result = await controller.registrar(body);
+    const result = await controller.registrar(body,jwt);
 
     expect(service.registrarVisita).toHaveBeenCalledWith(
-      body.clienteId,
-      body.vendedorId,
-      new Date(body.fechaVisita),
-      body.comentarios,
+      body,
+      jwt
     );
     expect(result).toEqual(expected);
   });

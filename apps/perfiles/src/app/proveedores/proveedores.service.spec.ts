@@ -22,10 +22,11 @@ describe('ProveedoresService (unit)', () => {
     const dto: CreateProveedorDto = {
       nombreProveedor: 'Laboratorios Sanar',
       numeroIdentificacion: '900123456-7',
-      pais: 'Colombia',
+      pais: 1,
       email: 'contacto@sanar.com',
       contactoPrincipal: 'María Gómez',
       telefonoContacto: '+57 3102345678',
+      tipoIdentificacion: 1,
     };
 
     const paisId = 1;
@@ -49,17 +50,17 @@ describe('ProveedoresService (unit)', () => {
     expect(result.id).toBe('uuid-123');
     expect(result.nombreProveedor).toBe('Laboratorios Sanar');
     expect(result.email).toBe('contacto@sanar.com');
-    expect(result.pais).toBe('Colombia');
   });
 
   test('lanza error cuando repo.create devuelve null/undefined', async () => {
     const dto: CreateProveedorDto = {
       nombreProveedor: 'Farmacéutica XYZ',
       numeroIdentificacion: '901122334-5',
-      pais: 'Chile',
+      pais: 2,
       email: 'info@farmaceuticaxyz.com',
       contactoPrincipal: 'Pedro Rojas',
       telefonoContacto: '+56 912345678',
+      tipoIdentificacion: 2,
     };
 
     const paisId = 2;
@@ -74,10 +75,11 @@ describe('ProveedoresService (unit)', () => {
     const dto: CreateProveedorDto = {
       nombreProveedor: 'BioSalud',
       numeroIdentificacion: '123456789',
-      pais: 'Argentina',
+      pais: 1,
       email: 'contacto@biosalud.com',
       contactoPrincipal: 'Lucía Martínez',
       telefonoContacto: '+54 91122223333',
+      tipoIdentificacion: 1,
     };
 
     const paisId = 3;

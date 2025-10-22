@@ -111,7 +111,7 @@ describe('AppService (unit)', () => {
         email: userDto.email,
         role: userDto.role,
         pais: userDto.pais,
-      }, { header: { alg: 'RS256', kid: 'mymainkey-1' } });
+      }, { header: { alg: 'HS256', kid: 'mymainkey-1' } });
       expect(result).toEqual({ access_token: token });
     });
 

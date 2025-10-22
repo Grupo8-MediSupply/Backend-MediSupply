@@ -5,32 +5,38 @@ import {
 } from '@nestjs/common';
 import type { IVisitaRepository } from '@medi-supply/perfiles-dm';
 import { VisitaCliente, EstadoVisita } from '@medi-supply/perfiles-dm';
+import { CreateVisitaDto } from './dtos/request/create-visita.dto';
+import type { JwtPayloadDto } from '@medi-supply/shared';
+import { ClientesService } from '../clientes/clientes.service';
 
 @Injectable()
 export class VisitasService {
   constructor(
     @Inject('IVisitaRepository')
     private readonly visitaRepo: IVisitaRepository,
+    private readonly clientesService: ClientesService,
   ) {}
 
   async registrarVisita(
-    clienteId: string,
-    vendedorId: string,
-    fechaVisita: Date,
-    comentarios?: string,
+    visitaDto : CreateVisitaDto,
+    user: JwtPayloadDto
   ) {
-    if (fechaVisita < new Date()) {
+    if (visitaDto.fechaVisita < new Date()) {
       throw new BadRequestException('La fecha debe ser futura');
     }
 
-    const nuevaVisita = new VisitaCliente(
-      null,
-      clienteId,
-      vendedorId,
-      fechaVisita,
-      EstadoVisita.PROGRAMADA,
-      comentarios,
-    );
+    // Verificar que el cliente exista
+    await this.clientesService.findById(visitaDto.clienteId);
+
+    const props = {
+      clienteId: visitaDto.clienteId,
+      vendedorId: user.sub,
+      fechaVisita: visitaDto.fechaVisita,
+      estado: EstadoVisita.PROGRAMADA,
+      comentarios: visitaDto.comentarios,
+    };
+
+    const nuevaVisita = new VisitaCliente(props);
 
     return this.visitaRepo.create(nuevaVisita);
   }
