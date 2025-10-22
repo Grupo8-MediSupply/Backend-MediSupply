@@ -20,6 +20,8 @@ export class VendedorRepository implements IVendedorRepository {
         const [user] = await trx('usuarios.usuario')
           .insert({
             email: vendedor.email.Value,
+            identificacion: vendedor.identificacion,
+            tipo_identificacion_id: vendedor.tipoIdentificacion,
             rol_id: vendedor.rolId,
             pais_id: vendedor.paisId,
             password_hash: vendedor.password,
@@ -42,8 +44,9 @@ export class VendedorRepository implements IVendedorRepository {
         rolId: vendedor.rolId,
         paisId: vendedor.paisId,
         password: vendedor.password,
+        identificacion: vendedor.identificacion,
+        tipoIdentificacion: vendedor.tipoIdentificacion,
         nombre: vendedor.nombre.Value,
-        territorio: vendedor.territorio,
         id: createdUserId!,
       });
       return vendedorCreado;
@@ -69,11 +72,12 @@ export class VendedorRepository implements IVendedorRepository {
         .select(
           'vendedor.id',
           'vendedor.nombre',
-          'vendedor.territorio',
           'usuario.email',
           'usuario.rol_id',
           'usuario.pais_id',
           'usuario.password',
+          'usuario.identificacion',
+          'usuario.tipo_identificacion'
         )
         .join('usuario', 'usuario.id', '=', 'vendedor.id')
         .where('vendedor.id', id)
@@ -86,9 +90,10 @@ export class VendedorRepository implements IVendedorRepository {
         email: record.email,
         rolId: record.rol_id,
         paisId: record.pais_id,
+        identificacion: record.identificacion,
+        tipoIdentificacion: record.tipo_identificacion,
         password: record.password,
         nombre: record.nombre,
-        territorio: record.territorio,
       });
     } catch (error) {
       console.error('❌ Error al buscar vendedor:', error);

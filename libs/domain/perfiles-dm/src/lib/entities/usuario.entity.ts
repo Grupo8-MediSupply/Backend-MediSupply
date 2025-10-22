@@ -7,6 +7,8 @@ interface UsuarioProps {
   rolId: number;
   paisId: number;
   password: string;
+  identificacion: string;
+  tipoIdentificacion: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -16,6 +18,8 @@ export class Usuario extends BaseEntity<string> {
   readonly rolId: number;
   readonly paisId: number;
   readonly password: string;
+  readonly identificacion: string;
+  readonly tipoIdentificacion: number;
 
   constructor(props: UsuarioProps) {
     super({
@@ -28,5 +32,7 @@ export class Usuario extends BaseEntity<string> {
     this.rolId = props.rolId;
     this.paisId = props.paisId;
     this.password = props.password;
+    this.identificacion = props.identificacion;
+    this.tipoIdentificacion = props.tipoIdentificacion;
   }
 }

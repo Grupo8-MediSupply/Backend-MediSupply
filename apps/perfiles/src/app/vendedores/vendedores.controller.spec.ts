@@ -45,6 +45,8 @@ describe('VendedoresController', () => {
       const dto: CreateVendedorDto = {
         nombre: 'Juan Pérez',
         email: 'juan@example.com',
+        identificacion: '987654321',
+        tipoIdentificacion: 2,
       };
 
       const expectedResult : VendedorResponseDto = { email: dto.email, paisCreacion: payloadMock.pais.toString()};
@@ -54,7 +56,7 @@ describe('VendedoresController', () => {
       const result = await controller.createVendedor(dto, payloadMock);
 
       // Assert
-      expect(service.create).toHaveBeenCalledWith(dto, payloadMock.pais);
+      expect(service.create).toHaveBeenCalledWith(dto, payloadMock);
       expect(result).toEqual(expectedResult);
     });
   });

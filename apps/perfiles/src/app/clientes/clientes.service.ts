@@ -1,8 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateClienteDto } from './dtos/request/create-cliente.dto';
 import { ClienteResponseDto } from './dtos/response/cliente.response.dto';
 import type { IClienteRepository} from '@medi-supply/perfiles-dm';
 import { Cliente } from '@medi-supply/perfiles-dm';
+import { RolesEnum } from '@medi-supply/shared';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class ClientesService {
@@ -14,13 +16,15 @@ export class ClientesService {
   async create(createClienteDto: CreateClienteDto): Promise<ClienteResponseDto> {
     const cliente = new Cliente({
       email: createClienteDto.email,
-      rolId: 30, 
-      paisId: 10, 
-      password: 'cliente_default$123',
+      rolId: RolesEnum.CLIENTE, 
+      paisId: createClienteDto.pais, 
+      password: await bcrypt.hash(createClienteDto.password, 10),
       nombre: createClienteDto.nombre,
       tipoInstitucion: createClienteDto.tipoInstitucion,
       clasificacion: createClienteDto.clasificacion,
       responsableContacto: createClienteDto.responsableContacto,
+      identificacion: createClienteDto.identificacion,
+      tipoIdentificacion: createClienteDto.tipoIdentificacion,
     });
 
     const createdCliente = await this.repo.create(cliente);
@@ -33,4 +37,13 @@ export class ClientesService {
       createdCliente.responsableContacto ?? '',
     );
   }
+
+  async findById(id: string): Promise<Cliente> {
+    const cliente = await this.repo.findById(id);
+    if (!cliente) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
+    return cliente;
+  }
+  
 }

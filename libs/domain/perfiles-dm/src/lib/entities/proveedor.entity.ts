@@ -3,10 +3,8 @@ import { Usuario } from './usuario.entity';
 
 export class Proveedor extends Usuario {
   readonly nombreProveedor: Nombre;
-  readonly numeroIdentificacion: string;
   readonly contactoPrincipal: Nombre;
   readonly telefonoContacto: string;
-  readonly pais: string;
 
   constructor(props: {
     id?: string;
@@ -14,11 +12,11 @@ export class Proveedor extends Usuario {
     rolId: number;
     paisId: number;
     password: string;
+    tipoIdentificacion: number;
     nombreProveedor: string;
     numeroIdentificacion: string;
     contactoPrincipal: string;
     telefonoContacto: string;
-    pais: string;
   }) {
     super({
       id: props.id,
@@ -26,13 +24,13 @@ export class Proveedor extends Usuario {
       rolId: props.rolId,
       paisId: props.paisId,
       password: props.password,
+      tipoIdentificacion: props.tipoIdentificacion,
+      identificacion: props.numeroIdentificacion,
     });
 
     this.nombreProveedor = new Nombre(props.nombreProveedor);
-    this.numeroIdentificacion = props.numeroIdentificacion;
     this.contactoPrincipal = new Nombre(props.contactoPrincipal);
     this.telefonoContacto = props.telefonoContacto;
-    this.pais = props.pais;
   }
 
   toPrimitives() {
@@ -42,10 +40,9 @@ export class Proveedor extends Usuario {
       rolId: this.rolId,
       paisId: this.paisId,
       nombreProveedor: this.nombreProveedor.Value,
-      numeroIdentificacion: this.numeroIdentificacion,
+      identificacion: this.identificacion,
       contactoPrincipal: this.contactoPrincipal.Value,
       telefonoContacto: this.telefonoContacto,
-      pais: this.pais,
       password: this.password,
     };
   }

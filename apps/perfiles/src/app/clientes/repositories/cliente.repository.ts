@@ -20,6 +20,8 @@ export class ClienteRepository implements IClienteRepository {
             rol_id: cliente.rolId,
             pais_id: cliente.paisId,
             password_hash: cliente.password,
+            identificacion: cliente.identificacion,
+            tipo_identificacion_id: cliente.tipoIdentificacion,
           })
           .returning('id');
 
@@ -46,6 +48,8 @@ export class ClienteRepository implements IClienteRepository {
         tipoInstitucion: cliente.tipoInstitucion,
         clasificacion: cliente.clasificacion,
         responsableContacto: cliente.responsableContacto,
+        identificacion: cliente.identificacion,
+        tipoIdentificacion: cliente.tipoIdentificacion,
       });
 
       return clienteCreado;
@@ -77,6 +81,9 @@ export class ClienteRepository implements IClienteRepository {
           'usuario.email',
           'usuario.rol_id',
           'usuario.pais_id',
+          'usuario.password_hash',
+          'usuario.identificacion',
+          'usuario.tipo_identificacion_id'
         )
         .join('usuarios.usuario', 'usuario.id', '=', 'cliente.id')
         .where('cliente.id', id)
@@ -94,6 +101,8 @@ export class ClienteRepository implements IClienteRepository {
         tipoInstitucion: record.tipo_institucion,
         clasificacion: record.clasificacion,
         responsableContacto: record.responsable_contacto,
+        identificacion: record.identificacion,
+        tipoIdentificacion: record.tipo_identificacion,
       });
     } catch (error) {
       console.error('❌ Error al buscar cliente:', error);

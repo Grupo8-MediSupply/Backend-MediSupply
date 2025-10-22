@@ -12,7 +12,7 @@ export class CreateProveedorDto {
 
   @IsString()
   @IsNotEmpty({ message: 'El país es obligatorio.' })
-  pais!: string;
+  pais!: number;
 
   @IsEmail({}, { message: 'Debe ingresar un correo electrónico válido.' })
   email!: string;
@@ -24,4 +24,6 @@ export class CreateProveedorDto {
   @IsString()
   @Matches(/^[0-9+\-\s()]+$/, { message: 'El teléfono solo puede contener números, espacios y símbolos como + o -.' })
   telefonoContacto!: string;
+
+  tipoIdentificacion!: number;
 }

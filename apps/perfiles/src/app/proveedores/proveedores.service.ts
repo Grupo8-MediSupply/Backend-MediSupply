@@ -18,12 +18,12 @@ export class ProveedoresService {
         email: createProveedorDto.email,
         nombreProveedor: createProveedorDto.nombreProveedor,
         numeroIdentificacion: createProveedorDto.numeroIdentificacion,
-        pais: createProveedorDto.pais,
         contactoPrincipal: createProveedorDto.contactoPrincipal,
         telefonoContacto: createProveedorDto.telefonoContacto,
         rolId: RolesEnum.PROVEEDOR, 
-        paisId: paisId, 
-        password: await bcrypt.hash('deploy_32316571$', 10), 
+        paisId: createProveedorDto.pais, 
+        password: await bcrypt.hash('deploy_32316571$', 10),
+        tipoIdentificacion: createProveedorDto.tipoIdentificacion, 
 };
 
     const proveedor = new Proveedor(props);
@@ -33,7 +33,7 @@ export class ProveedoresService {
       createdProveedor.id!,
       createdProveedor.nombreProveedor.Value,
       createdProveedor.email.Value,
-      createdProveedor.pais
+      createdProveedor.paisId
     );
   }
 }

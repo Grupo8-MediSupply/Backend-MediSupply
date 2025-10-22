@@ -25,6 +25,10 @@ describe('ClientesService (unit)', () => {
       clasificacion: 'Alta complejidad',
       responsableContacto: 'Dra. Laura Gómez',
       email: 'contacto@clinicasantamaria.com',
+      pais: 2,
+      identificacion: '123456789',
+      password: 'securepassword',
+      tipoIdentificacion: 1,
     };
 
     const createdFromRepo = {
@@ -57,6 +61,10 @@ describe('ClientesService (unit)', () => {
       clasificacion: 'Media',
       responsableContacto: 'Dr. López',
       email: 'dr.lopez@hospital.com',
+      pais: 2,
+      identificacion: '123456789',
+      password: 'securepassword',
+      tipoIdentificacion: 1,
     };
 
     mockRepo.create.mockResolvedValue(null as any);
@@ -72,6 +80,10 @@ describe('ClientesService (unit)', () => {
       clasificacion: 'Alta',
       responsableContacto: 'Dra. Pérez',
       email: 'draperez@clinicadelnorte.com',
+      pais: 2,
+      identificacion: '123456789',
+      password: 'securepassword',
+      tipoIdentificacion: 1,
     };
 
     const repoError = new Error('db failure');

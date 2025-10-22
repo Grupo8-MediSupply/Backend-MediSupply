@@ -12,5 +12,6 @@ import { ClienteRepository } from './repositories/cliente.repository';
       useClass: ClienteRepository,
     },
   ],
+  exports: [ClientesService],
 })
 export class ClientesModule {}

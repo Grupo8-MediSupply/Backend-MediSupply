@@ -36,10 +36,11 @@ describe('ProveedoresController', () => {
       const dto: CreateProveedorDto = {
         nombreProveedor: 'Laboratorios Sanar',
         numeroIdentificacion: '900123456-7',
-        pais: 'Colombia',
+        pais: 1,
         email: 'contacto@sanar.com',
         contactoPrincipal: 'María Gómez',
         telefonoContacto: '+57 3102345678',
+        tipoIdentificacion: 1,
       };
 
       const mockToken = { pais: 1 } as any; // simula el @User()
