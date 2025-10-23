@@ -10,4 +10,6 @@ export * from './lib/interfaces/repositories/Icliente.repository.interface';
 export * from './lib/entities/proveedor.entity';
 export * from './lib/interfaces/repositories/Iproveedor.repository.interface';
 export * from './lib/entities/pais.entity';
-export * from './lib/interfaces/repositories/Ipais.repository.interface'
+export * from './lib/interfaces/repositories/Ipais.repository.interface';
+export * from './lib/entities/tipo-identificacion.entity';
+export * from './lib/interfaces/repositories/Itipo-identifiacion.repository.interface';

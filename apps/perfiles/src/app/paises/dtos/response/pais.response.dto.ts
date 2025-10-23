@@ -35,6 +35,11 @@ export class PaisResponseDto {
   @IsString()
   reguladorSanitario?: string | null;
 
+  @Expose()
+  @IsOptional()
+  @IsString()
+  sigla_moneda?: string | null;
+
   constructor(
     id: number,
     codigoIso: string,
@@ -44,6 +49,7 @@ export class PaisResponseDto {
     zonaHoraria: string,
     idiomaOficial: string,
     reguladorSanitario?: string | null,
+    sigla_moneda?: string | null,
   ) {
     this.id = id;
     this.codigoIso = codigoIso;
@@ -53,5 +59,6 @@ export class PaisResponseDto {
     this.zonaHoraria = zonaHoraria;
     this.idiomaOficial = idiomaOficial;
     this.reguladorSanitario = reguladorSanitario ?? null;
+    this.sigla_moneda = sigla_moneda ?? null;
   }
 }

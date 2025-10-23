@@ -1,10 +1,11 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   CreateProductoDto,
-  TipoProducto,
 } from './dtos/request/create-producto.dto';
 import {
+  DetalleRegional,
   ProductoEquipoMedico,
+  ProductoInfoRegion,
   ProductoInsumoMedico,
   ProductoMedicamento,
   type IProductoRepository,
@@ -12,6 +13,10 @@ import {
 } from '@medi-supply/productos-dm';
 import { ProductoInfoRegionResponseDto } from './dtos/response/producto-info-region.response.dto';
 import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
+import { TipoProducto } from '@medi-supply/productos-dm';
+import type { JwtPayloadDto } from '@medi-supply/shared';
+
+
 
 @Injectable()
 export class ProductoService {
@@ -22,10 +27,28 @@ export class ProductoService {
 
   // 🟩 Crear producto (ya existente)
   async createProducto(
-    createProductoDto: CreateProductoDto
-  ): Promise<ProductoVariant> {
-    const producto = this.mapDtoToProductoVariant(createProductoDto);
-    return await this.productoRepository.create(producto);
+    createProductoDto: CreateProductoDto,
+    user: JwtPayloadDto,
+  ): Promise<ProductoInfoRegionResponseDto> {
+    const productoGlobal = this.mapDtoToProductoVariant(createProductoDto);
+    const detalleRegional: DetalleRegional = {
+      pais: user.pais,
+      precio: createProductoDto.precioVenta,
+      proveedor: createProductoDto.proveedorId,
+      regulaciones: createProductoDto.regulaciones || [],
+    }
+    const productoRegional: ProductoInfoRegion = {
+      productoGlobal: productoGlobal,
+      detalleRegional,
+    };
+    const creado =  await this.productoRepository.create(productoRegional);
+    return {
+      sku: creado.productoGlobal.sku,
+      nombre: creado.productoGlobal.nombre,
+      descripcion: creado.productoGlobal.descripcion,
+      tipo: creado.productoGlobal.tipoProducto,
+      precio: creado.detalleRegional.precio,
+    };
   }
 
 
@@ -36,12 +59,12 @@ export class ProductoService {
     }
     return productos.map(producto => {
       const dto = new ProductoInfoRegionResponseDto();
-      dto.productoRegionalId = producto.productoRegionalId;
-      dto.sku = producto.sku;
-      dto.nombre = producto.nombre;
-      dto.descripcion = producto.descripcion;
-      dto.tipo = producto.tipo;
-      dto.precio = producto.precio;
+      dto.productoRegionalId = producto.detalleRegional.id;
+      dto.sku = producto.productoGlobal.sku;
+      dto.nombre = producto.productoGlobal.nombre;
+      dto.descripcion = producto.productoGlobal.descripcion;
+      dto.tipo = producto.productoGlobal.tipoProducto;
+      dto.precio = producto.detalleRegional.precio;
       return dto;
     });
   }
@@ -107,6 +130,8 @@ export class ProductoService {
       sku: dto.sku,
       nombre: dto.nombre,
       descripcion: dto.descripcion,
+      precioVenta: dto.precioVenta,
+      tipoProducto: dto.tipo,
     };
 
     switch (dto.tipo) {
@@ -125,7 +150,7 @@ export class ProductoService {
         });
       }
 
-      case TipoProducto.INSUMO_MEDICO: {
+      case TipoProducto.INSUMO: {
         const data = dto.insumoMedico;
         if (!data) {
           throw new BadRequestException(
@@ -141,7 +166,7 @@ export class ProductoService {
         });
       }
 
-      case TipoProducto.EQUIPO_MEDICO: {
+      case TipoProducto.EQUIPO: {
         const data = dto.equipoMedico;
         if (!data) {
           throw new BadRequestException(

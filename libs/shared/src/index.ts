@@ -8,3 +8,4 @@ export * from './lib/auth/dto/jwt-payload.dto';
 export * from './lib/auth/enums/roles.enum';
 export * from './lib/auth/decorators/roles.decorator';
 export * from './lib/auth/guards/roles.guard';
+export * from './lib/swagger/swagger-docs';
