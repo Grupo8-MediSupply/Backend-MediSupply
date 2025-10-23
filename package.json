@@ -22,7 +22,7 @@
     "@swc/jest": "~0.2.38",
     "@types/bcrypt": "^6.0.0",
     "@types/jest": "^30.0.0",
-    "@types/node": "20.19.9",
+    "@types/node": "^20.19.9",
     "@types/passport-local": "^1.0.38",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
@@ -54,6 +54,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/platform-fastify": "^11.1.6",
+    "@nestjs/typeorm": "^11.0.0",
     "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
@@ -65,6 +66,7 @@
     "pem-jwk": "^2.0.0",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.1.14",
-    "rxjs": "^7.8.0"
+    "rxjs": "^7.8.0",
+    "typeorm": "^0.3.27"
   }
 }
