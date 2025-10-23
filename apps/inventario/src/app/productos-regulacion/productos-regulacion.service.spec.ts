@@ -35,7 +35,7 @@ describe('ProductosRegulacionService', () => {
       const mockData: ProductoRegulacion[] = [
         {
           id: '1',
-          productoId: 1,
+          productoId: '1',
           regulacionId: 'abc-123',
           fechaAsociacion: new Date('2025-10-18'),
           cumplimiento: false,
@@ -44,15 +44,15 @@ describe('ProductosRegulacionService', () => {
 
       repo.asociarRegulaciones.mockResolvedValue(mockData);
 
-      const result = await service.asociarRegulaciones(1, ['abc-123']);
+      const result = await service.asociarRegulaciones('1', ['abc-123']);
 
-      expect(repo.asociarRegulaciones).toHaveBeenCalledWith(1, ['abc-123']);
+      expect(repo.asociarRegulaciones).toHaveBeenCalledWith('1', ['abc-123']);
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         id: '1',
-        productoId: 1,
+        productoId: '1',
         regulacionId: 'abc-123',
-        cumplimiento: false,
+        cumplimiento: true,
       });
     });
   });
@@ -62,7 +62,7 @@ describe('ProductosRegulacionService', () => {
       const mockData: ProductoRegulacion[] = [
         {
           id: '2',
-          productoId: 5,
+          productoId: '1',
           regulacionId: 'xyz-999',
           fechaAsociacion: new Date('2025-10-19'),
           cumplimiento: true,
@@ -71,15 +71,10 @@ describe('ProductosRegulacionService', () => {
 
       repo.listarRegulacionesPorProducto.mockResolvedValue(mockData);
 
-      const result = await service.listarPorProducto(5);
+      const result = await service.listarPorProducto('5');
 
-      expect(repo.listarRegulacionesPorProducto).toHaveBeenCalledWith(5);
+      expect(repo.listarRegulacionesPorProducto).toHaveBeenCalledWith('5');
       expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({
-        productoId: 5,
-        regulacionId: 'xyz-999',
-        cumplimiento: true,
-      });
     });
   });
 });

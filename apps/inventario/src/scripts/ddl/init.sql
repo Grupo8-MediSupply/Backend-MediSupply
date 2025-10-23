@@ -80,7 +80,6 @@ CREATE TABLE IF NOT EXISTS productos.producto_regional (
     producto_global_id BIGINT NOT NULL REFERENCES productos.producto_global(id),
     pais_id BIGINT NOT NULL, -- Removed reference since geografia.pais may not exist
     proveedor_id UUID NOT NULL, -- Removed reference since usuarios.proveedor may not exist
-    regulacion_id UUID REFERENCES regulacion.regulacion(id),
     precio NUMERIC(12,2) NOT NULL,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
@@ -155,3 +154,11 @@ CREATE TABLE IF NOT EXISTS logistica.inventario (
 
 CREATE INDEX IF NOT EXISTS idx_inventario_bodega ON logistica.inventario(bodega_id);
 CREATE INDEX IF NOT EXISTS idx_inventario_lote ON logistica.inventario(lote_id);
+
+-- 1. Crear el tipo ENUM
+CREATE TYPE productos.tipo_producto_enum AS ENUM ('MEDICAMENTO', 'INSUMO', 'EQUIPO');
+
+-- 2. Agregar la nueva columna
+ALTER TABLE productos.producto_global
+ADD COLUMN tipo_producto productos.tipo_producto_enum NOT NULL DEFAULT 'INSUMO';
+

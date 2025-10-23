@@ -7,6 +7,7 @@ export class Pais {
   readonly zonaHoraria: string;
   readonly idiomaOficial: string;
   readonly reguladorSanitario?: string | null;
+  readonly sigla_moneda: string;
 
   constructor(props: {
     id: number;
@@ -14,6 +15,7 @@ export class Pais {
     nombre: string;
     moneda: string;
     simboloMoneda: string;
+    sigla_moneda: string;
     zonaHoraria: string;
     idiomaOficial: string;
     reguladorSanitario?: string | null;
@@ -23,6 +25,7 @@ export class Pais {
     this.nombre = props.nombre;
     this.moneda = props.moneda;
     this.simboloMoneda = props.simboloMoneda;
+    this.sigla_moneda = props.sigla_moneda;
     this.zonaHoraria = props.zonaHoraria;
     this.idiomaOficial = props.idiomaOficial;
     this.reguladorSanitario = props.reguladorSanitario ?? null;
@@ -38,6 +41,7 @@ export class Pais {
       zonaHoraria: this.zonaHoraria,
       idiomaOficial: this.idiomaOficial,
       reguladorSanitario: this.reguladorSanitario,
+      sigla_moneda: this.sigla_moneda,
     };
   }
 }

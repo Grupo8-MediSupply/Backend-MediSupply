@@ -17,6 +17,7 @@ export class PaisRepository implements IPaisRepository {
           'zona_horaria as zonaHoraria',
           'idioma_oficial as idiomaOficial',
           'regulador_sanitario as reguladorSanitario',
+          'sigla_moneda as sigla_moneda',
         )
         .orderBy('id', 'asc');
 
@@ -31,6 +32,7 @@ export class PaisRepository implements IPaisRepository {
             zonaHoraria: r.zonaHoraria,
             idiomaOficial: r.idiomaOficial,
             reguladorSanitario: r.reguladorSanitario,
+            sigla_moneda: r.sigla_moneda,
           }),
       );
     } catch (error) {
@@ -51,6 +53,7 @@ export class PaisRepository implements IPaisRepository {
           'zona_horaria as zonaHoraria',
           'idioma_oficial as idiomaOficial',
           'regulador_sanitario as reguladorSanitario',
+          'sigla_moneda as sigla_moneda',
         )
         .where({ id })
         .first();
@@ -66,6 +69,7 @@ export class PaisRepository implements IPaisRepository {
         zonaHoraria: record.zonaHoraria,
         idiomaOficial: record.idiomaOficial,
         reguladorSanitario: record.reguladorSanitario,
+        sigla_moneda: record.sigla_moneda,
       });
     } catch (error) {
       console.error('❌ Error al consultar país:', error);

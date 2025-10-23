@@ -23,6 +23,7 @@ export class PaisesService {
           p.zonaHoraria,
           p.idiomaOficial,
           p.reguladorSanitario ?? null,
+          p.sigla_moneda ?? null,
         ),
     );
   }
@@ -40,6 +41,7 @@ export class PaisesService {
       pais.zonaHoraria,
       pais.idiomaOficial,
       pais.reguladorSanitario ?? null,
+      pais.sigla_moneda ?? null,
     );
   }
 }

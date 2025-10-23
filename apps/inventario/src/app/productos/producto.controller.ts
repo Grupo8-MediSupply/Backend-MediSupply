@@ -18,8 +18,8 @@ export class ProductoController {
   constructor(private readonly productoService: ProductoService) {}
 
   @Post()
-  async createProducto(@Body() producto: CreateProductoDto) {
-    return await this.productoService.createProducto(producto);
+  async createProducto(@Body() producto: CreateProductoDto, @User() user: JwtPayloadDto) {
+    return await this.productoService.createProducto(producto, user);
   }
 
   @UseGuards(RolesGuard)
