@@ -8,7 +8,7 @@ import type { JwtPayloadDto } from '@medi-supply/shared';
 export class ConfiguracionController {
   constructor(private readonly configuracionService: ConfiguracionService) {}
 
-  @Roles(RolesEnum.ADMIN, RolesEnum.VENDEDOR, RolesEnum.PROVEEDOR)
+  @Roles(RolesEnum.ADMIN, RolesEnum.VENDEDOR, RolesEnum.PROVEEDOR,RolesEnum.CLIENTE)
   @Get()
   async getConfiguracion(@User() user: JwtPayloadDto) {
     return this.configuracionService.getConfiguracionPorPais(user.pais);

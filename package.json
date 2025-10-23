@@ -46,6 +46,8 @@
     "libs/domain/*"
   ],
   "dependencies": {
+    "@fastify/swagger": "^9.5.2",
+    "@fastify/swagger-ui": "^5.2.3",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.2",
@@ -54,7 +56,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/platform-fastify": "^11.1.6",
-    "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/swagger": "^11.2.1",
     "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",

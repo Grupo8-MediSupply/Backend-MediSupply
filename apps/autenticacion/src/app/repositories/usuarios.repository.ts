@@ -11,6 +11,10 @@ export class UsuariosRepository implements IUsuariosRepository {
       .where({ email })
       .first();
 
+    if (!usuarioRow) {
+      return null;
+    }
+
     return new Usuario({
       id: usuarioRow.id,
       email: usuarioRow.email,

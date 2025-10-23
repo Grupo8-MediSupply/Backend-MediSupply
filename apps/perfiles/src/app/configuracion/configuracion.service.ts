@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IPaisRepository, ITipoIdentificacionRepository } from '@medi-supply/perfiles-dm';
+import { Pais, type IPaisRepository, type ITipoIdentificacionRepository } from '@medi-supply/perfiles-dm';
 
 @Injectable()
 export class ConfiguracionService {

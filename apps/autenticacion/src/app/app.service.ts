@@ -6,8 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { UsuarioConsultaDto } from './dtos/response/usuario-consulta.dto';
 import { JwtPayloadDto } from '@medi-supply/shared';
 import { ConfigService } from '@nestjs/config';
-import { promises as fs } from 'fs';
-import { join } from 'path';
+
 
 @Injectable()
 export class AppService {

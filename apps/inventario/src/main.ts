@@ -6,6 +6,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { AppModule } from './app/app.module';
 import fastifyCors from '@fastify/cors'; // 👈 Importa el plugin
+import { setupSwagger } from '@medi-supply/shared';
 
 async function bootstrap() {
   // 🔹 Creamos la app con FastifyAdapter
@@ -32,6 +33,7 @@ async function bootstrap() {
 
   // 🔹 Puerto configurable
   const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+  setupSwagger(app, 'API Inventario', 'Módulo de gestión de inventario');
 
   // 🔹 Escuchar en 0.0.0.0 (útil para Cloud Run o Docker)
   await app.listen({ port, host: '0.0.0.0' });
