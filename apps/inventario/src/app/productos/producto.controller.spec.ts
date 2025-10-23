@@ -1,14 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductoController } from './producto.controller';
 import { ProductoService } from './producto.service';
-import { CreateProductoDto, TipoProducto } from './dtos/request/create-producto.dto';
+import { CreateProductoDto } from './dtos/request/create-producto.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
+import { TipoProducto } from '@medi-supply/productos-dm';
 
 describe('ProductoController', () => {
   let controller: ProductoController;
   let service: jest.Mocked<ProductoService>;
+  const jwt : JwtPayloadDto = {
+    sub: 'user-1',
+    email: 'testuser',
+    role: 1,
+    pais: 1,
+  };
 
   beforeEach(async () => {
     const mockProductoService = {
@@ -51,9 +58,9 @@ describe('ProductoController', () => {
       const expected = { id: 'm-1', sku: dto.sku } as any;
       service.createProducto.mockResolvedValue(expected);
 
-      const result = await controller.createProducto(dto);
+      const result = await controller.createProducto(dto, jwt);
 
-      expect(service.createProducto).toHaveBeenCalledWith(dto);
+      expect(service.createProducto).toHaveBeenCalledWith(dto, jwt);
       expect(result).toBe(expected);
     });
 
@@ -68,8 +75,8 @@ describe('ProductoController', () => {
 
       service.createProducto.mockRejectedValue(new BadRequestException('bad'));
 
-      await expect(controller.createProducto(dto)).rejects.toThrow(BadRequestException);
-      expect(service.createProducto).toHaveBeenCalledWith(dto);
+      await expect(controller.createProducto(dto, jwt)).rejects.toThrow(BadRequestException);
+      expect(service.createProducto).toHaveBeenCalledWith(dto, jwt);
     });
   });
 

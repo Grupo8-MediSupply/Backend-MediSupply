@@ -155,3 +155,10 @@ CREATE TABLE IF NOT EXISTS logistica.inventario (
 
 CREATE INDEX IF NOT EXISTS idx_inventario_bodega ON logistica.inventario(bodega_id);
 CREATE INDEX IF NOT EXISTS idx_inventario_lote ON logistica.inventario(lote_id);
+
+-- 1. Crear el tipo ENUM
+CREATE TYPE productos.tipo_producto_enum AS ENUM ('MEDICAMENTO', 'INSUMO', 'EQUIPO');
+
+-- 2. Agregar la nueva columna
+ALTER TABLE productos.producto_global
+ADD COLUMN tipo_producto productos.tipo_producto_enum NOT NULL DEFAULT 'INSUMO';

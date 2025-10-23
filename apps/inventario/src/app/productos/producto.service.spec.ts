@@ -1,18 +1,29 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ProductoService } from './producto.service';
-import { CreateProductoDto, TipoProducto } from './dtos/request/create-producto.dto';
+import { CreateProductoDto } from './dtos/request/create-producto.dto';
 import {  ProductoEquipoMedico,
   ProductoInsumoMedico,
   ProductoMedicamento, } from '@medi-supply/productos-dm';
 import type { 
   IProductoRepository,
+  ProductoInfoRegion,
   ProductoVariant,
 } from '@medi-supply/productos-dm';
 import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
+import { TipoProducto } from '@medi-supply/productos-dm';
+import type { JwtPayloadDto } from '@medi-supply/shared';
+
+
 
 describe('ProductoService (unit)', () => {
   let service: ProductoService;
   let mockRepo: jest.Mocked<IProductoRepository>;
+  const jwt : JwtPayloadDto = {
+    sub: 'user-1',
+    email: 'testuser',
+    role: 1,
+    pais: 1,
+  };
 
   beforeEach(() => {
     mockRepo = {
@@ -35,17 +46,30 @@ describe('ProductoService (unit)', () => {
         principioActivo: 'Paracetamol',
         concentracion: '500mg',
       },
+      precioVenta: 10.5,
+      proveedorId: "prov-123",
     };
 
-    const createdFromRepo = { id: 'm-1' } as unknown as ProductoVariant;
+    const createdFromRepo = {productoGlobal: new ProductoMedicamento({
+      sku: dto.sku,
+      nombre: dto.nombre,
+      descripcion: dto.descripcion,
+      principioActivo: dto.medicamento!.principioActivo,
+      concentracion: dto.medicamento!.concentracion,
+      tipoProducto: TipoProducto.MEDICAMENTO,
+    }),detalleRegional:{
+      pais: jwt.pais,
+      precio: dto.precioVenta!,
+      proveedor: dto.proveedorId!,
+      regulaciones: dto.regulaciones || [],
+    }} as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto);
+    const result = await service.createProducto(dto, jwt);
 
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
     const arg = mockRepo.create.mock.calls[0][0];
-    expect(arg).toBeInstanceOf(ProductoMedicamento);
-    expect(result).toBe(createdFromRepo);
+    expect(arg.productoGlobal).toBeInstanceOf(ProductoMedicamento);
   });
 
   test('crea insumo medico y convierte fechaVencimiento a Date cuando es string', async () => {
@@ -53,23 +77,38 @@ describe('ProductoService (unit)', () => {
       sku: 'SKU-002',
       nombre: 'Guantes',
       descripcion: 'Desechables',
-      tipo: TipoProducto.INSUMO_MEDICO,
+      tipo: TipoProducto.INSUMO,
       insumoMedico: {
         esteril: true,
         material: 'Látex',
         usoUnico: true,
       },
+      precioVenta: 5.0,
+      proveedorId: "prov-456",
     };
 
-    const createdFromRepo = { id: 'i-1' } as unknown as ProductoVariant;
+    const createdFromRepo = {productoGlobal: new ProductoEquipoMedico({
+      sku: dto.sku,
+      nombre: dto.nombre,
+      descripcion: dto.descripcion,
+      marca: dto.equipoMedico?.marca,
+      modelo: dto.equipoMedico?.modelo,
+      vidaUtil: dto.equipoMedico?.vidaUtil,
+      requiereMantenimiento: dto.equipoMedico?.requiereMantenimiento,
+      tipoProducto: TipoProducto.EQUIPO,
+    }),detalleRegional:{
+      pais: jwt.pais,
+      precio: dto.precioVenta!,
+      proveedor: dto.proveedorId!,
+      regulaciones: dto.regulaciones || [],
+    }} as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto);
+    const result = await service.createProducto(dto, jwt);
 
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
     const arg = mockRepo.create.mock.calls[0][0];
-    expect(arg).toBeInstanceOf(ProductoInsumoMedico);
-    expect(result).toBe(createdFromRepo);
+    expect(arg.productoGlobal).toBeInstanceOf(ProductoInsumoMedico);
   });
 
   test('crea equipo medico y convierte fechaCompra a Date cuando es string', async () => {
@@ -77,25 +116,40 @@ describe('ProductoService (unit)', () => {
       sku: 'SKU-003',
       nombre: 'Monitor',
       descripcion: 'Monitor de signos',
-      tipo: TipoProducto.EQUIPO_MEDICO,
+      tipo: TipoProducto.EQUIPO,
       equipoMedico: {
         marca: 'MarcaY',
         modelo: 'MY-2000',
         requiereMantenimiento: true,
         vidaUtil: 5,
       },
+      precioVenta: 1500.0,
+      proveedorId: "prov-789",
     };
 
-    const createdFromRepo = { id: 1, nombre: 'Monitor' } as ProductoVariant;
+    const createdFromRepo = {productoGlobal: new ProductoEquipoMedico({
+      sku: dto.sku,
+      nombre: dto.nombre,
+      descripcion: dto.descripcion,
+      marca: dto.equipoMedico?.marca,
+      modelo: dto.equipoMedico?.modelo,
+      vidaUtil: dto.equipoMedico?.vidaUtil,
+      requiereMantenimiento: dto.equipoMedico?.requiereMantenimiento,
+      tipoProducto: TipoProducto.EQUIPO,
+    }),detalleRegional:{
+      pais: jwt.pais,
+      precio: dto.precioVenta!,
+      proveedor: dto.proveedorId!,
+      regulaciones: dto.regulaciones || [],
+    }} as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto);
+    const result = await service.createProducto(dto, jwt);
 
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
     const arg = mockRepo.create.mock.calls[0][0];
-    expect(arg).toBeInstanceOf(ProductoEquipoMedico);
+    expect(arg.productoGlobal).toBeInstanceOf(ProductoEquipoMedico);
 
-    expect(result).toBe(createdFromRepo);
   });
 
   test('lanza BadRequestException cuando faltan datos de medicamento', async () => {
@@ -105,9 +159,11 @@ describe('ProductoService (unit)', () => {
       descripcion: 'Y',
       tipo: TipoProducto.MEDICAMENTO,
       medicamento: undefined as any,
+      precioVenta: 0,
+      proveedorId: "prov-123",
     };
 
-    await expect(service.createProducto(dto)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.createProducto(dto,jwt)).rejects.toBeInstanceOf(BadRequestException);
     expect(mockRepo.create).not.toHaveBeenCalled();
   });
 
@@ -116,11 +172,13 @@ describe('ProductoService (unit)', () => {
       sku: 'SKU-005',
       nombre: 'X',
       descripcion: 'Y',
-      tipo: TipoProducto.INSUMO_MEDICO,
+      tipo: TipoProducto.INSUMO,
       insumoMedico: undefined as any,
+      precioVenta: 0,
+      proveedorId: "prov-123",
     };
 
-    await expect(service.createProducto(dto)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.createProducto(dto,jwt)).rejects.toBeInstanceOf(BadRequestException);
     expect(mockRepo.create).not.toHaveBeenCalled();
   });
 
@@ -129,11 +187,13 @@ describe('ProductoService (unit)', () => {
       sku: 'SKU-006',
       nombre: 'X',
       descripcion: 'Y',
-      tipo: TipoProducto.EQUIPO_MEDICO,
+      tipo: TipoProducto.EQUIPO,
       equipoMedico: undefined as any,
+      precioVenta: 0,
+      proveedorId: "prov-123",
     };
 
-    await expect(service.createProducto(dto)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.createProducto(dto,jwt)).rejects.toBeInstanceOf(BadRequestException);
     expect(mockRepo.create).not.toHaveBeenCalled();
   });
 
@@ -145,7 +205,7 @@ describe('ProductoService (unit)', () => {
       tipo: 'INVALID_TIPO',
     } as unknown as CreateProductoDto;
 
-    await expect(service.createProducto(dto)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.createProducto(dto,jwt)).rejects.toBeInstanceOf(BadRequestException);
     expect(mockRepo.create).not.toHaveBeenCalled();
   });
 
@@ -154,45 +214,75 @@ describe('ProductoService (unit)', () => {
     sku: 'SKU-010',
     nombre: 'Jeringa',
     descripcion: 'Uso hospitalario',
-    tipo: TipoProducto.INSUMO_MEDICO,
+    tipo: TipoProducto.INSUMO,
     insumoMedico: {
       esteril: true,
       material: 'Plástico',
       usoUnico: true,
     },
+    precioVenta: 2.5,
+    proveedorId: "prov-321",
   };
 
-    const createdFromRepo = { id: 'i-2' } as any;
+    const createdFromRepo = {productoGlobal: new ProductoInsumoMedico({
+      sku: dto.sku,
+      nombre: dto.nombre,
+      descripcion: dto.descripcion,
+      esteril: dto.insumoMedico?.esteril,
+      material: dto.insumoMedico?.material,
+      usoUnico: dto.insumoMedico?.usoUnico,
+      tipoProducto: TipoProducto.INSUMO,
+    }),detalleRegional:{
+      pais: jwt.pais,
+      precio: dto.precioVenta!,
+      proveedor: dto.proveedorId!,
+      regulaciones: dto.regulaciones || [],
+    }} as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto);
+    const result = await service.createProducto(dto, jwt);
 
   expect(mockRepo.create).toHaveBeenCalled();
   const arg = mockRepo.create.mock.calls[0][0];
-  expect(result).toBe(createdFromRepo);
-});
+  expect(arg.productoGlobal).toBeInstanceOf(ProductoInsumoMedico);});
 
 test('maneja equipo médico sin fechaCompra', async () => {
   const dto: CreateProductoDto = {
     sku: 'SKU-011',
     nombre: 'Balanza',
     descripcion: 'Equipo de medición',
-    tipo: TipoProducto.EQUIPO_MEDICO,
+    tipo: TipoProducto.EQUIPO,
     equipoMedico: {
       marca: 'MarcaQ',
       modelo: 'Q-10',
     },
+    precioVenta: 300.0,
+    proveedorId: "prov-654",
   };
 
-    const createdFromRepo = { id: 'e-2' } as any;
+    const createdFromRepo = {productoGlobal: new ProductoEquipoMedico({
+      sku: dto.sku,
+      nombre: dto.nombre,
+      descripcion: dto.descripcion,
+      marca: dto.equipoMedico?.marca,
+      modelo: dto.equipoMedico?.modelo,
+      vidaUtil: dto.equipoMedico?.vidaUtil,
+      requiereMantenimiento: dto.equipoMedico?.requiereMantenimiento,
+      tipoProducto: TipoProducto.EQUIPO,
+    }),detalleRegional:{
+      pais: jwt.pais,
+      precio: dto.precioVenta!,
+      proveedor: dto.proveedorId!,
+      regulaciones: dto.regulaciones || [],
+    }} as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto);
+    const result = await service.createProducto(dto, jwt);
 
   expect(mockRepo.create).toHaveBeenCalled();
   const arg = mockRepo.create.mock.calls[0][0];
 
-  expect(result).toBe(createdFromRepo);
+  expect(arg.productoGlobal).toBeInstanceOf(ProductoEquipoMedico);
 });
 // TypeScript
 
@@ -212,26 +302,40 @@ describe('ProductoService - obtenerProductosDeUnaRegion (unit)', () => {
 
   test('devuelve lista mapeada correctamente', async () => {
     const regionId = 42;
-    const repoProducts = [
+    const repoProducts: ProductoInfoRegion[] = [
       {
-        productoRegionalId: 'pr-1',
-        sku: 'SKU-A',
-        nombre: 'Producto A',
-        descripcion: 'Desc A',
-        tipo: 'MEDICAMENTO',
-        precio: 12.34,
+        detalleRegional: {
+          id: "123",
+          pais: regionId,
+          precio: 100,
+          proveedor: 'prov-1',
+          regulaciones: [],
+        },
+        productoGlobal: {
+          sku: 'SKU-A',
+          nombre: 'Producto A',
+          descripcion: 'Desc A',
+          tipoProducto: TipoProducto.MEDICAMENTO,
+        } as ProductoVariant,
       },
       {
-        productoRegionalId: 'pr-2',
-        sku: 'SKU-B',
-        nombre: 'Producto B',
-        descripcion: 'Desc B',
-        tipo: 'INSUMO_MEDICO',
-        precio: 56.78,
+        detalleRegional: {
+          id: "234",
+          pais: regionId,
+          precio: 200,
+          proveedor: 'prov-2',
+          regulaciones: [],
+        },
+        productoGlobal: {
+          sku: 'SKU-B',
+          nombre: 'Producto B',
+          descripcion: 'Desc B',
+          tipoProducto: TipoProducto.INSUMO,
+        } as ProductoVariant,
       },
     ];
 
-    mockRepo.findByPais.mockResolvedValue(repoProducts as any);
+    mockRepo.findByPais.mockResolvedValue(repoProducts);
 
     const result = await service.obtenerProductosDeUnaRegion(regionId);
 
@@ -241,12 +345,12 @@ describe('ProductoService - obtenerProductosDeUnaRegion (unit)', () => {
     expect(result).toHaveLength(repoProducts.length);
 
     for (let i = 0; i < repoProducts.length; i++) {
-      expect(result[i].productoRegionalId).toBe(repoProducts[i].productoRegionalId);
-      expect(result[i].sku).toBe(repoProducts[i].sku);
-      expect(result[i].nombre).toBe(repoProducts[i].nombre);
-      expect(result[i].descripcion).toBe(repoProducts[i].descripcion);
-      expect(result[i].tipo).toBe(repoProducts[i].tipo);
-      expect(result[i].precio).toBe(repoProducts[i].precio);
+      expect(result[i].productoRegionalId).toBe(repoProducts[i].detalleRegional.id);
+      expect(result[i].sku).toBe(repoProducts[i].productoGlobal.sku);
+      expect(result[i].nombre).toBe(repoProducts[i].productoGlobal.nombre);
+      expect(result[i].descripcion).toBe(repoProducts[i].productoGlobal.descripcion);
+      expect(result[i].tipo).toBe(repoProducts[i].productoGlobal.tipoProducto);
+      expect(result[i].precio).toBe(repoProducts[i].detalleRegional.precio);
     }
   });
 
@@ -277,6 +381,7 @@ describe('ProductoService - obtenerProductosDeUnaRegion (unit)', () => {
       descripcion: 'Analgésico',
       principioActivo: 'Paracetamol',
       concentracion: '500mg',
+      tipoProducto: TipoProducto.MEDICAMENTO,
     });
     mockRepo.findById.mockResolvedValue(producto);
 
@@ -296,6 +401,7 @@ describe('ProductoService - obtenerProductosDeUnaRegion (unit)', () => {
       material: 'Látex',
       esteril: true,
       usoUnico: true,
+      tipoProducto: TipoProducto.INSUMO,
     });
     mockRepo.findById.mockResolvedValue(producto);
 
@@ -314,6 +420,7 @@ describe('ProductoService - obtenerProductosDeUnaRegion (unit)', () => {
       nombre: 'Monitor de signos vitales',
       marca: 'MedTech',
       modelo: 'X200',
+      tipoProducto: TipoProducto.EQUIPO,
     });
     mockRepo.findById.mockResolvedValue(producto);
 

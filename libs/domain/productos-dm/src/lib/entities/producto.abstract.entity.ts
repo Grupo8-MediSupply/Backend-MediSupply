@@ -1,4 +1,5 @@
 import { BaseEntity } from '@medi-supply/core';
+import { TipoProducto } from '../enums/product.types';
 
 export interface ProductoPros {
     id?: number;
@@ -7,6 +8,7 @@ export interface ProductoPros {
     descripcion?: string;
     createdAt?: Date;
     updatedAt?: Date;
+    tipoProducto: TipoProducto;
 }
 
 
@@ -14,6 +16,7 @@ export abstract class ProductoGlobal extends BaseEntity<number> {
     readonly sku: string;
     readonly nombre: string;
     readonly descripcion?: string;
+    readonly tipoProducto: TipoProducto;
 
     constructor(props: ProductoPros){
         super({
@@ -24,6 +27,7 @@ export abstract class ProductoGlobal extends BaseEntity<number> {
         this.sku = props.sku;
         this.nombre = props.nombre;
         this.descripcion = props.descripcion;
+        this.tipoProducto = props.tipoProducto;
 
     }
 
