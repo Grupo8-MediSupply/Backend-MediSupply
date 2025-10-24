@@ -8,3 +8,4 @@ export * from './lib/interfaces/repositories/IProducto.repository';
 export * from './lib/entities/producto-regulacion.entity';
 export * from './lib/interfaces/repositories/IProductoRegulacion.repository';
 export * from './lib/interfaces/entities/producto.info-region.interface';
+export * from './lib/interfaces/entities/producto-detalle.interface';
