@@ -30,6 +30,7 @@ describe('ProductoService (unit)', () => {
       create: jest.fn(),
       findById: jest.fn(),
       findByPais: jest.fn(),
+      findBySku: jest.fn(),
       // si IProductoRepository tiene más métodos, agrégalos como jest.fn()
     }as jest.Mocked<IProductoRepository>;
 
@@ -371,72 +372,46 @@ describe('ProductoService - obtenerProductosDeUnaRegion (unit)', () => {
   });
 });
 
-  // NUEVAS PRUEBAS: findById
-  describe('findById', () => {
-    it('debería retornar un ProductoDetalleResponseDto para un medicamento', async () => {
-    const producto = new ProductoMedicamento({
-      id: 1,
-      sku: 'MED-001',
-      nombre: 'Paracetamol',
-      descripcion: 'Analgésico',
-      principioActivo: 'Paracetamol',
-      concentracion: '500mg',
-      tipoProducto: TipoProducto.MEDICAMENTO,
-    });
-    mockRepo.findById.mockResolvedValue(producto);
+  // ===== Tests for findById (AAA) =====
+  describe('findById (unit)', () => {
+    test('Arrange/Act/Assert: devuelve el producto cuando existe y pertenece a la misma región', async () => {
+      // Arrange
+      const productoMock: any = {
+        id: 'prod-uuid-1',
+        productoPaisId: jwt.pais,
+        nombre: 'Producto Test'
+      };
+      mockRepo.findById.mockResolvedValue(productoMock);
 
-    const result = await service.findById(1);
+      // Act
+      const result = await service.findById('prod-uuid-1', jwt);
 
-    expect(result).toBeInstanceOf(ProductoDetalleResponseDto);
-    expect(result.tipo).toBe('medicamento');
-    expect(result.detalleEspecifico).toBeDefined();
-    expect(mockRepo.findById).toHaveBeenCalledWith(1);
+      // Assert
+      expect(mockRepo.findById).toHaveBeenCalledWith('prod-uuid-1', jwt.pais);
+      expect(result).toBe(productoMock);
     });
 
-    it('debería retornar un ProductoDetalleResponseDto para un insumo médico', async () => {
-    const producto = new ProductoInsumoMedico({
-      id: 2,
-      sku: 'INS-001',
-      nombre: 'Guantes',
-      material: 'Látex',
-      esteril: true,
-      usoUnico: true,
-      tipoProducto: TipoProducto.INSUMO,
-    });
-    mockRepo.findById.mockResolvedValue(producto);
-
-    const result = await service.findById(2);
-
-    expect(result.tipo).toBe('insumo_medico');
-    expect(result.detalleEspecifico).toBeDefined();
-    expect(result.ubicacion).toBeDefined();
-    expect(result.regulaciones).toBeDefined();
-    });
-
-    it('debería retornar un ProductoDetalleResponseDto para un equipo médico', async () => {
-    const producto = new ProductoEquipoMedico({
-      id: 3,
-      sku: 'EQ-001',
-      nombre: 'Monitor de signos vitales',
-      marca: 'MedTech',
-      modelo: 'X200',
-      tipoProducto: TipoProducto.EQUIPO,
-    });
-    mockRepo.findById.mockResolvedValue(producto);
-
-    const result = await service.findById(3);
-
-    expect(result.tipo).toBe('equipo_medico');
-    expect(result.detalleEspecifico).toBeDefined();
-
-    });
-
-
-    it('debería lanzar NotFoundException si el producto no existe', async () => {
+    test('Arrange/Act/Assert: lanza NotFoundException cuando repositorio devuelve null', async () => {
+      // Arrange
       mockRepo.findById.mockResolvedValue(null);
 
-      await expect(service.findById(999)).rejects.toBeInstanceOf(NotFoundException);
-      expect(mockRepo.findById).toHaveBeenCalledWith(999);
+      // Act & Assert
+      await expect(service.findById('non-existent-id', jwt)).rejects.toBeInstanceOf(NotFoundException);
+      expect(mockRepo.findById).toHaveBeenCalledWith('non-existent-id', jwt.pais);
+    });
+
+    test('Arrange/Act/Assert: lanza NotFoundException cuando el producto pertenece a otra región', async () => {
+      // Arrange
+      const productoOtroPais: any = {
+        id: 'prod-uuid-2',
+        productoPaisId: jwt.pais + 1,
+        nombre: 'Producto Otro Pais'
+      };
+      mockRepo.findById.mockResolvedValue(productoOtroPais);
+
+      // Act & Assert
+      await expect(service.findById('prod-uuid-2', jwt)).rejects.toBeInstanceOf(NotFoundException);
+      expect(mockRepo.findById).toHaveBeenCalledWith('prod-uuid-2', jwt.pais);
     });
   });
 });

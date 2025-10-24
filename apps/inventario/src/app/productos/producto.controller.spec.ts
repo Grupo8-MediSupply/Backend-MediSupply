@@ -5,7 +5,7 @@ import { CreateProductoDto } from './dtos/request/create-producto.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
-import { TipoProducto } from '@medi-supply/productos-dm';
+import { ProductoDetalle, TipoProducto } from '@medi-supply/productos-dm';
 
 describe('ProductoController', () => {
   let controller: ProductoController;
@@ -113,24 +113,34 @@ describe('ProductoController', () => {
 
   describe('findById', () => {
     it('debería llamar al servicio con el ID y retornar su resultado', async () => {
-      const expected = new ProductoDetalleResponseDto();
-      expected.id = 1;
-      expected.nombre = 'Paracetamol';
-      expected.tipo = 'medicamento';
+      const expected:ProductoDetalle = {
+        id: 1,
+        nombre: 'Paracetamol',
+        tipo: 'medicamento',
+        sku: 'SKU-001',
+        descripcion: 'Analgesico',
+        precio: 1000,
+        proveedor: {
+          id: '1',
+          nombre: 'ProveedorX',
+          pais: 'PaisY',
+        },
+        productoPaisId: 1,
+      }
 
       service.findById.mockResolvedValue(expected);
 
-      const result = await controller.findById(1);
+      const result = await controller.findById('1', jwt);
 
-      expect(service.findById).toHaveBeenCalledWith(1);
+      expect(service.findById).toHaveBeenCalledWith('1', jwt);
       expect(result).toBe(expected);
     });
 
     it('debería propagar NotFoundException si el servicio lanza error', async () => {
       service.findById.mockRejectedValue(new NotFoundException('No encontrado'));
 
-      await expect(controller.findById(999)).rejects.toThrow(NotFoundException);
-      expect(service.findById).toHaveBeenCalledWith(999);
+      await expect(controller.findById('1',jwt)).rejects.toThrow(NotFoundException);
+      expect(service.findById).toHaveBeenCalledWith('1', jwt);
     });
   });
 

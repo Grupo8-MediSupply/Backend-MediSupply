@@ -12,7 +12,6 @@ export class VendedorRepository implements IVendedorRepository {
    * automática de UUID en la base de datos.
    */
   async create(vendedor: Vendedor): Promise<Vendedor> {
-    try {
       let createdUserId: string;
 
       await this.db.transaction(async (trx) => {
@@ -50,17 +49,6 @@ export class VendedorRepository implements IVendedorRepository {
         id: createdUserId!,
       });
       return vendedorCreado;
-    } catch (error) {
-      console.error('❌ Error al crear vendedor:', error);
-
-      if ((error as any).code === '23505') {
-        throw new InternalServerErrorException(
-          'Ya existe un usuario o vendedor con este email o ID.',
-        );
-      }
-
-      throw new InternalServerErrorException('Error al crear el vendedor.');
-    }
   }
 
   /**
