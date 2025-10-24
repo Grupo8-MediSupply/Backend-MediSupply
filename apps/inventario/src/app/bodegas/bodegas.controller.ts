@@ -17,4 +17,9 @@ export class BodegasController {
   async obtenerBodega(@Param('id') id: string, @User() user: JwtPayloadDto) {
     return this.service.findById(id, user);
   }
+
+  @Get('/:id/productos/')
+  async obtenerProductosEnBodega(@Param('id') id: string, @User() user: JwtPayloadDto) {
+    return this.service.obtenerProductosEnBodega(id, user.pais);
+  }
 }

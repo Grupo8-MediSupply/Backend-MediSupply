@@ -14,3 +14,14 @@ export interface ProveedorDetailDto{
   nombre: string;
   pais: string;
 }
+
+export interface ProductoBodega{
+  BodegaId: string;
+  nombreProducto: string;
+  cantidad: number;
+  FechaVencimiento?: Date;
+  sku: string;
+  productoRegionalId: string;
+  numeroLote: string;
+  loteId: string;
+}

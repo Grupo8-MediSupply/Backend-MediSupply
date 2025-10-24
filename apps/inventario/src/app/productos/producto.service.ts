@@ -4,6 +4,7 @@ import {
 } from './dtos/request/create-producto.dto';
 import {
   DetalleRegional,
+  ProductoBodega,
   ProductoDetalle,
   ProductoEquipoMedico,
   ProductoInfoRegion,
@@ -79,6 +80,10 @@ export class ProductoService {
     }
 
     return producto;
+  }
+
+  async obtenerProductosEnBodega(bodegaId: string,): Promise<ProductoBodega[]> {
+    return this.productoRepository.findByBodega(bodegaId);
   }
 
   // 🧱 Mapeo auxiliar (ya existente)
