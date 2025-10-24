@@ -11,5 +11,6 @@ import { ProductoRepository } from './repositories/producto.repository';
       useClass: ProductoRepository, 
     }
   ],
+  exports: [ProductoService],
 })
 export class ProductoModule {}

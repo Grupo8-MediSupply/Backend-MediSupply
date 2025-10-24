@@ -83,7 +83,7 @@ export class ClienteRepository implements IClienteRepository {
           'usuario.pais_id',
           'usuario.password_hash',
           'usuario.identificacion',
-          'usuario.tipo_identificacion_id'
+          'usuario.tipo_identificacion_id',
         )
         .join('usuarios.usuario', 'usuario.id', '=', 'cliente.id')
         .where('cliente.id', id)
@@ -107,6 +107,52 @@ export class ClienteRepository implements IClienteRepository {
     } catch (error) {
       console.error('❌ Error al buscar cliente:', error);
       throw new InternalServerErrorException('Error al buscar el cliente.');
+    }
+  }
+
+  /**
+   * Lista los clientes asociados a un vendedor
+   */
+  async findByVendedor(vendedorId: string): Promise<Cliente[]> {
+    try {
+      const registros = await this.db('usuarios.visita_cliente as vc')
+        .distinct(
+          'c.id',
+          'c.nombre',
+          'c.tipo_institucion',
+          'c.clasificacion',
+          'c.responsable_contacto',
+          'u.email',
+          'u.rol_id',
+          'u.pais_id',
+          'u.identificacion',
+          'u.tipo_identificacion_id as tipo_identificacion',
+        )
+        .join('usuarios.cliente as c', 'c.id', 'vc.cliente_id')
+        .join('usuarios.usuario as u', 'u.id', 'c.id')
+        .where('vc.vendedor_id', vendedorId);
+
+      return registros.map(
+        (record) =>
+          new Cliente({
+            id: record.id,
+            email: record.email,
+            rolId: record.rol_id,
+            paisId: record.pais_id,
+            password: '***',
+            nombre: record.nombre,
+            tipoInstitucion: record.tipo_institucion ?? undefined,
+            clasificacion: record.clasificacion ?? undefined,
+            responsableContacto: record.responsable_contacto ?? undefined,
+            identificacion: record.identificacion,
+            tipoIdentificacion: record.tipo_identificacion,
+          }),
+      );
+    } catch (error) {
+      console.error('❌ Error al listar clientes por vendedor:', error);
+      throw new InternalServerErrorException(
+        'Error al obtener los clientes del vendedor.',
+      );
     }
   }
 }

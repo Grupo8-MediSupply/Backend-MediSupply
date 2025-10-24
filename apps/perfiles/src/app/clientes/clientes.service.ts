@@ -45,5 +45,20 @@ export class ClientesService {
     }
     return cliente;
   }
+
+  async listarPorVendedor(vendedorId: string): Promise<ClienteResponseDto[]> {
+    const clientes = await this.repo.findByVendedor(vendedorId);
+
+    return clientes.map(
+      (cliente) =>
+        new ClienteResponseDto(
+          cliente.id!,
+          cliente.nombre.Value,
+          cliente.tipoInstitucion ?? '',
+          cliente.clasificacion ?? '',
+          cliente.responsableContacto ?? '',
+        ),
+    );
+  }
   
 }
