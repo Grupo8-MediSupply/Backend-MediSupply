@@ -2,15 +2,30 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { IBodegaRepository, Bodega } from '@medi-supply/bodegas-dm';
 import { BodegaResponseDto } from './dtos/response/bodega.response.dto';
 import type { JwtPayloadDto } from '@medi-supply/shared';
+import { ProductoService } from '../productos/producto.service';
 
 
 @Injectable()
 export class BodegasService {
+
+  
   constructor(
     @Inject('IBodegaRepository')
-    private readonly repo: IBodegaRepository
+    private readonly repo: IBodegaRepository,
+    private readonly productoService: ProductoService,
   ) {}
+  
+  async obtenerProductosEnBodega(id: string, pais: number) {
+        const bodega = await this.repo.findById(id);
+    if (!bodega || bodega.paisId !== pais) {
+      throw new NotFoundException('La bodega no existe o no pertenece a su país.');
+    }
 
+    // Obtener los productos en la bodega utilizando el servicio de productos
+    const productosEnBodega = await this.productoService.obtenerProductosEnBodega(id);
+    return productosEnBodega;
+  }
+  
   async findByPaisId(paisId: number): Promise<BodegaResponseDto[]> {
     const bodegas: Bodega[] = await this.repo.findByPaisId(paisId);
     return bodegas.map(
@@ -63,4 +78,5 @@ export class BodegasService {
       bodega.updatedAt
     );
   }
+
 }

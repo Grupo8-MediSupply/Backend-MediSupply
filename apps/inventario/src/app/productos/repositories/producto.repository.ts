@@ -7,12 +7,32 @@ import {
   ProductoInfoRegion,
   TipoProducto,
   ProductoDetalle,
+  ProductoBodega,
 } from '@medi-supply/productos-dm';
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
 
 export class ProductoRepository implements IProductoRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+
+  async findByBodega(bodegaId: string): Promise<ProductoBodega[]> {
+    return await this.db('logistica.inventario as inv')
+    .leftJoin('logistica.lote as lote', 'lote.id', 'inv.lote_id')
+    .leftJoin('productos.producto_regional as pr', 'pr.id', 'lote.producto_regional_id')
+    .leftJoin('productos.producto_global as pg', 'pg.id', 'pr.producto_global_id')
+    .select(
+      'inv.bodega_id as BodegaId',
+      'pg.nombre as nombreProducto',
+      'inv.cantidad_disponible as cantidad',
+      'lote.fecha_vencimiento as FechaVencimiento',
+      'pg.sku as sku',
+      'pr.id as productoRegionalId',
+      'lote.numero as numeroLote',
+      'lote.id as loteId'
+    )
+    .where('inv.bodega_id', bodegaId);
+
+  }
 
   async findByPais(regionId: number): Promise<ProductoInfoRegion[]> {
     const rows = await this.db('productos.producto_regional as pr')
@@ -278,4 +298,5 @@ export class ProductoRepository implements IProductoRepository {
       throw new InternalServerErrorException('Error al consultar el producto.');
     }
   }
+  
 }
