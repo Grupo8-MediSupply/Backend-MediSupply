@@ -5,5 +5,5 @@ export interface IProductoRepository {
     create(producto: ProductoInfoRegion): Promise<ProductoInfoRegion>;
     findById(id: number): Promise<ProductoVariant | null>;
     findByPais(regionId: number): Promise<ProductoInfoRegion[]>;
-
+    findBySku(sku: string): Promise<ProductoInfoRegion | null>;
 }

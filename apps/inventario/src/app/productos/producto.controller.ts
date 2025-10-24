@@ -32,7 +32,7 @@ export class ProductoController {
   }
 
   @Get(':id')
-  async findById(@Param('id', ParseIntPipe) id: number) {
+  async findById(@Param('id') id: string) {
     return await this.productoService.findById(id);
   }
 }

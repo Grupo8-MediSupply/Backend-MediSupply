@@ -162,3 +162,7 @@ CREATE TYPE productos.tipo_producto_enum AS ENUM ('MEDICAMENTO', 'INSUMO', 'EQUI
 ALTER TABLE productos.producto_global
 ADD COLUMN tipo_producto productos.tipo_producto_enum NOT NULL DEFAULT 'INSUMO';
 
+ALTER TABLE productos.producto_regional
+ADD CONSTRAINT producto_regional_unico UNIQUE (producto_global_id, pais_id);
+
+

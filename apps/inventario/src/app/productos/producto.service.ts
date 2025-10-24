@@ -72,56 +72,12 @@ export class ProductoService {
 
 
   // 🟦 Nuevo método: obtener detalle del producto por ID
-  async findById(id: number): Promise<ProductoDetalleResponseDto> {
+  async findById(id: string): Promise<ProductoDetalleResponseDto> {
     const producto = await this.productoRepository.findById(id);
     if (!producto) {
-      throw new NotFoundException(`No se encontró el producto con ID ${id}`);
+      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
     }
-
-    const response = new ProductoDetalleResponseDto();
-    response.id = producto.id!;
-    response.sku = producto.sku;
-    response.nombre = producto.nombre;
-    response.descripcion = producto.descripcion;
-
-    if (producto instanceof ProductoMedicamento) {
-      response.tipo = 'medicamento';
-      response.detalleEspecifico = {
-        principioActivo: producto.principioActivo,
-        concentracion: producto.concentracion,
-        formaFarmaceutica: producto.formaFarmaceutica,
-      };
-    } else if (producto instanceof ProductoInsumoMedico) {
-      response.tipo = 'insumo_medico';
-      response.detalleEspecifico = {
-        material: producto.material,
-        esteril: producto.esteril,
-        usoUnico: producto.usoUnico,
-      };
-    } else if (producto instanceof ProductoEquipoMedico) {
-      response.tipo = 'equipo_medico';
-      response.detalleEspecifico = {
-        marca: producto.marca,
-        modelo: producto.modelo,
-        vidaUtil: producto.vidaUtil,
-        requiereMantenimiento: producto.requiereMantenimiento,
-      };
-    }
-
-    // 🔹 Mock temporal — luego se reemplazará con consultas reales a inventario.bodega_producto y normativas
-    response.ubicacion = {
-      idBodega: 1,
-      nombreBodega: 'Bodega Central',
-      cantidadDisponible: 20,
-    };
-
-    response.regulaciones = {
-      pais: 'Colombia',
-      normativaTributaria: 'Decreto 1234/2022 - INVIMA',
-      observaciones: 'Cumple con la normativa sanitaria vigente.',
-    };
-
-    return response;
+    
   }
 
   // 🧱 Mapeo auxiliar (ya existente)
