@@ -4,6 +4,7 @@ import {
 } from './dtos/request/create-producto.dto';
 import {
   DetalleRegional,
+  ProductoDetalle,
   ProductoEquipoMedico,
   ProductoInfoRegion,
   ProductoInsumoMedico,
@@ -12,7 +13,6 @@ import {
   type ProductoVariant,
 } from '@medi-supply/productos-dm';
 import { ProductoInfoRegionResponseDto } from './dtos/response/producto-info-region.response.dto';
-import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
 import { TipoProducto } from '@medi-supply/productos-dm';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 
@@ -72,12 +72,13 @@ export class ProductoService {
 
 
   // 🟦 Nuevo método: obtener detalle del producto por ID
-  async findById(id: string): Promise<ProductoDetalleResponseDto> {
-    const producto = await this.productoRepository.findById(id);
-    if (!producto) {
+  async findById(id: string, user: JwtPayloadDto): Promise<ProductoDetalle> {
+    const producto: ProductoDetalle | null = await this.productoRepository.findById(id, user.pais);
+    if (!producto || producto.productoPaisId !== user.pais) {
       throw new NotFoundException(`Producto con ID ${id} no encontrado`);
     }
-    
+
+    return producto;
   }
 
   // 🧱 Mapeo auxiliar (ya existente)

@@ -6,6 +6,7 @@ import {
   ProductoVariant,
   ProductoInfoRegion,
   TipoProducto,
+  ProductoDetalle,
 } from '@medi-supply/productos-dm';
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
@@ -53,8 +54,6 @@ export class ProductoRepository implements IProductoRepository {
         'med.concentracion'
       )
       .where('pr.pais_id', regionId);
-
-    console.log(rows[0]);
 
     const mappedRows = rows.map((row) => {
       let productoGlobal;
@@ -207,86 +206,51 @@ export class ProductoRepository implements IProductoRepository {
     });
   }
 
-  async findById(id: number): Promise<ProductoVariant | null> {
-    try {
-      // 1️⃣ Consultar producto base
-      const base = await this.db('productos.producto_global')
-        .select('*')
-        .where({ id })
-        .first();
+  async findById(id: string, paisId: number): Promise<ProductoDetalle | null> {
+    const producto = await this.db('productos.producto_regional as pr')
+  .join('productos.producto_global as pg', 'pg.id', 'pr.producto_global_id')
+  .leftJoin('usuarios.usuario as usu', 'usu.id', 'pr.proveedor_id')
+  .leftJoin('geografia.pais as pais', 'pais.id', 'usu.pais_id')
+  .leftJoin('usuarios.proveedor as prov', 'prov.id', 'usu.id')
+  .select(
+    'pg.id as productoGlobalId',
+    'pg.sku',
+    'pg.nombre',
+    'pg.descripcion',
+    this.db.raw('pg.tipo_producto::text as tipo'),
+    'pr.id as productoRegionalId',
+    'pr.precio',
+    'prov.id as proveedorId',
+    'prov.nombre as proveedorNombre',
+    'pais.id as paisId',
+    'pais.nombre as paisNombre',
+    'pr.pais_id as productoPaisId'
+    )
+  .where('pr.id', id)
+  .andWhere('pr.pais_id', paisId)
+  .first();
 
-      if (!base) return null;
-
-      // 2️⃣ Buscar detalle en tabla medicamento
-      const medicamento = await this.db('productos.medicamento')
-        .select('*')
-        .where({ producto_global_id: id })
-        .first();
-
-      if (medicamento) {
-        return new ProductoMedicamento({
-          id: base.id,
-          sku: base.sku,
-          nombre: base.nombre,
-          descripcion: base.descripcion,
-          createdAt: base.created_at,
-          updatedAt: base.updated_at,
-          principioActivo: medicamento.principio_activo,
-          concentracion: medicamento.concentracion,
-          formaFarmaceutica: medicamento.forma_farmaceutica,
-          tipoProducto: base.tipo_producto,
-        });
-      }
-
-      // 3️⃣ Buscar detalle en tabla insumo_medico
-      const insumo = await this.db('productos.insumo_medico')
-        .select('*')
-        .where({ producto_global_id: id })
-        .first();
-
-      if (insumo) {
-        return new ProductoInsumoMedico({
-          id: base.id,
-          sku: base.sku,
-          nombre: base.nombre,
-          descripcion: base.descripcion,
-          createdAt: base.created_at,
-          updatedAt: base.updated_at,
-          material: insumo.material,
-          esteril: insumo.esteril,
-          usoUnico: insumo.uso_unico,
-          tipoProducto: base.tipo_producto,
-        });
-      }
-
-      // 4️⃣ Buscar detalle en tabla equipo_medico
-      const equipo = await this.db('productos.equipo_medico')
-        .select('*')
-        .where({ producto_global_id: id })
-        .first();
-
-      if (equipo) {
-        return new ProductoEquipoMedico({
-          id: base.id,
-          sku: base.sku,
-          nombre: base.nombre,
-          descripcion: base.descripcion,
-          createdAt: base.created_at,
-          updatedAt: base.updated_at,
-          marca: equipo.marca,
-          modelo: equipo.modelo,
-          vidaUtil: equipo.vida_util,
-          requiereMantenimiento: equipo.requiere_mantenimiento,
-          tipoProducto: base.tipo_producto,
-        });
-      }
-
-      // Si no está en ninguna tabla hija
+    if (!producto) {
       return null;
-    } catch (error) {
-      console.error('❌ Error al consultar producto por ID:', error);
-      throw new InternalServerErrorException('Error al consultar el producto.');
     }
+    
+    const detalle: ProductoDetalle = {
+      id: producto.productoRegionalId,
+      sku: producto.sku,
+      nombre: producto.nombre,
+      descripcion: producto.descripcion,
+      tipo: producto.tipo,
+      precio: Number(producto.precio),
+      proveedor: {
+        id: producto.proveedorId,
+        nombre: producto.proveedorNombre,
+        pais: producto.paisNombre,
+      },
+      productoPaisId: producto.productoPaisId,
+    };
+
+    return detalle;
+    
   }
 
   async findBySku(sku: string): Promise<ProductoInfoRegion | null> {

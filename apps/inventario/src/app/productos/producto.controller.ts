@@ -32,7 +32,7 @@ export class ProductoController {
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    return await this.productoService.findById(id);
+  async findById(@Param('id') id: string,@User() user: JwtPayloadDto) {
+    return await this.productoService.findById(id,user);
   }
 }
