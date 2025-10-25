@@ -1,7 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  CreateProductoDto,
-} from './dtos/request/create-producto.dto';
+import { CreateProductoDto } from './dtos/request/create-producto.dto';
+import { UpdateProductoDto } from './dtos/request/update-producto.dto';
 import {
   DetalleRegional,
   ProductoBodega,
@@ -49,6 +48,49 @@ export class ProductoService {
       descripcion: creado.productoGlobal.descripcion,
       tipo: creado.productoGlobal.tipoProducto,
       precio: creado.detalleRegional.precio,
+    };
+  }
+
+  async actualizarProducto(
+    productoRegionalId: string,
+    updateProductoDto: UpdateProductoDto,
+    user: JwtPayloadDto,
+  ): Promise<ProductoInfoRegionResponseDto> {
+    const existente = await this.productoRepository.findById(
+      productoRegionalId,
+      user.pais,
+    );
+
+    if (!existente || existente.productoPaisId !== user.pais) {
+      throw new NotFoundException(
+        `Producto con ID ${productoRegionalId} no encontrado`,
+      );
+    }
+
+    const productoGlobal = this.mapDtoToProductoVariant(updateProductoDto);
+    const detalleRegional: DetalleRegional = {
+      id: productoRegionalId,
+      pais: user.pais,
+      precio: updateProductoDto.precioVenta,
+      proveedor: updateProductoDto.proveedorId,
+      regulaciones: updateProductoDto.regulaciones || [],
+    };
+
+    const actualizado = await this.productoRepository.update(
+      productoRegionalId,
+      {
+        productoGlobal,
+        detalleRegional,
+      },
+    );
+
+    return {
+      productoRegionalId,
+      sku: actualizado.productoGlobal.sku,
+      nombre: actualizado.productoGlobal.nombre,
+      descripcion: actualizado.productoGlobal.descripcion,
+      tipo: actualizado.productoGlobal.tipoProducto,
+      precio: actualizado.detalleRegional.precio,
     };
   }
 
