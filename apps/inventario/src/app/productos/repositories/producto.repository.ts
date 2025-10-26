@@ -3,7 +3,6 @@ import {
   ProductoEquipoMedico,
   ProductoInsumoMedico,
   ProductoMedicamento,
-  ProductoVariant,
   ProductoInfoRegion,
   TipoProducto,
   ProductoDetalle,
@@ -11,27 +10,87 @@ import {
 } from '@medi-supply/productos-dm';
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
+import { ProductoOrden } from 'libs/domain/ordenes-dm/src';
 
 export class ProductoRepository implements IProductoRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
 
+  async updateStock(productos: ProductoOrden[]): Promise<void> {
+    if (!productos || productos.length === 0) return;
+
+    // construimos los valores
+    const values = productos
+      .map((p) => `('${p.bodega}'::uuid, '${p.lote}'::uuid, ${p.cantidad})`)
+      .join(',\n  ');
+
+    await this.db.transaction(async (trx) => {
+      // 1️⃣ Verificar stock insuficiente
+      const sinStock = await trx.raw(`
+      SELECT i.bodega_id, i.lote_id, i.cantidad_disponible, v.cantidad
+      FROM logistica.inventario AS i
+      JOIN (VALUES
+        ${values}
+      ) AS v(bodega_id, lote_id, cantidad)
+      ON i.bodega_id = v.bodega_id AND i.lote_id = v.lote_id
+      WHERE i.cantidad_disponible < v.cantidad;
+    `);
+
+      if (sinStock.rows.length > 0) {
+        throw new Error(
+          'Stock insuficiente para uno o más productos: ' +
+            sinStock.rows
+              .map((r) => `bodega=${r.bodega_id}, lote=${r.lote_id}`)
+              .join('; ')
+        );
+      }
+
+      // 2️⃣ Hacer el UPDATE en una sola operación
+      const result = await trx.raw(`
+      UPDATE logistica.inventario AS i
+      SET cantidad_disponible = i.cantidad_disponible - v.cantidad,
+          fecha_ultimo_movimiento = NOW(),
+          updated_at = NOW()
+      FROM (VALUES
+        ${values}
+      ) AS v(bodega_id, lote_id, cantidad)
+      WHERE i.bodega_id = v.bodega_id
+        AND i.lote_id = v.lote_id
+      RETURNING i.bodega_id, i.lote_id, i.cantidad_disponible;
+    `);
+
+      if (result.rows.length === 0) {
+        console.warn('⚠️ No se actualizó ningún inventario.');
+      }
+
+      // opcional: log
+      // console.log('Inventario actualizado:', result.rows);
+    });
+  }
+
   async findByBodega(bodegaId: string): Promise<ProductoBodega[]> {
     return await this.db('logistica.inventario as inv')
-    .leftJoin('logistica.lote as lote', 'lote.id', 'inv.lote_id')
-    .leftJoin('productos.producto_regional as pr', 'pr.id', 'lote.producto_regional_id')
-    .leftJoin('productos.producto_global as pg', 'pg.id', 'pr.producto_global_id')
-    .select(
-      'inv.bodega_id as BodegaId',
-      'pg.nombre as nombreProducto',
-      'inv.cantidad_disponible as cantidad',
-      'lote.fecha_vencimiento as FechaVencimiento',
-      'pg.sku as sku',
-      'pr.id as productoRegionalId',
-      'lote.numero as numeroLote',
-      'lote.id as loteId'
-    )
-    .where('inv.bodega_id', bodegaId);
-
+      .leftJoin('logistica.lote as lote', 'lote.id', 'inv.lote_id')
+      .leftJoin(
+        'productos.producto_regional as pr',
+        'pr.id',
+        'lote.producto_regional_id'
+      )
+      .leftJoin(
+        'productos.producto_global as pg',
+        'pg.id',
+        'pr.producto_global_id'
+      )
+      .select(
+        'inv.bodega_id as BodegaId',
+        'pg.nombre as nombreProducto',
+        'inv.cantidad_disponible as cantidad',
+        'lote.fecha_vencimiento as FechaVencimiento',
+        'pg.sku as sku',
+        'pr.id as productoRegionalId',
+        'lote.numero as numeroLote',
+        'lote.id as loteId'
+      )
+      .where('inv.bodega_id', bodegaId);
   }
 
   async findByPais(regionId: number): Promise<ProductoInfoRegion[]> {
@@ -228,32 +287,32 @@ export class ProductoRepository implements IProductoRepository {
 
   async findById(id: string, paisId: number): Promise<ProductoDetalle | null> {
     const producto = await this.db('productos.producto_regional as pr')
-  .join('productos.producto_global as pg', 'pg.id', 'pr.producto_global_id')
-  .leftJoin('usuarios.usuario as usu', 'usu.id', 'pr.proveedor_id')
-  .leftJoin('geografia.pais as pais', 'pais.id', 'usu.pais_id')
-  .leftJoin('usuarios.proveedor as prov', 'prov.id', 'usu.id')
-  .select(
-    'pg.id as productoGlobalId',
-    'pg.sku',
-    'pg.nombre',
-    'pg.descripcion',
-    this.db.raw('pg.tipo_producto::text as tipo'),
-    'pr.id as productoRegionalId',
-    'pr.precio',
-    'prov.id as proveedorId',
-    'prov.nombre as proveedorNombre',
-    'pais.id as paisId',
-    'pais.nombre as paisNombre',
-    'pr.pais_id as productoPaisId'
-    )
-  .where('pr.id', id)
-  .andWhere('pr.pais_id', paisId)
-  .first();
+      .join('productos.producto_global as pg', 'pg.id', 'pr.producto_global_id')
+      .leftJoin('usuarios.usuario as usu', 'usu.id', 'pr.proveedor_id')
+      .leftJoin('geografia.pais as pais', 'pais.id', 'usu.pais_id')
+      .leftJoin('usuarios.proveedor as prov', 'prov.id', 'usu.id')
+      .select(
+        'pg.id as productoGlobalId',
+        'pg.sku',
+        'pg.nombre',
+        'pg.descripcion',
+        this.db.raw('pg.tipo_producto::text as tipo'),
+        'pr.id as productoRegionalId',
+        'pr.precio',
+        'prov.id as proveedorId',
+        'prov.nombre as proveedorNombre',
+        'pais.id as paisId',
+        'pais.nombre as paisNombre',
+        'pr.pais_id as productoPaisId'
+      )
+      .where('pr.id', id)
+      .andWhere('pr.pais_id', paisId)
+      .first();
 
     if (!producto) {
       return null;
     }
-    
+
     const detalle: ProductoDetalle = {
       id: producto.productoRegionalId,
       sku: producto.sku,
@@ -270,7 +329,6 @@ export class ProductoRepository implements IProductoRepository {
     };
 
     return detalle;
-    
   }
 
   async findBySku(sku: string): Promise<ProductoInfoRegion | null> {
@@ -298,5 +356,4 @@ export class ProductoRepository implements IProductoRepository {
       throw new InternalServerErrorException('Error al consultar el producto.');
     }
   }
-  
 }

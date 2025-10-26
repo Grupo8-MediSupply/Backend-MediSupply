@@ -25,6 +25,9 @@
       "path": "../../libs/domain/bodegas-dm/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/domain/ordenes-dm/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/domain/productos-dm/tsconfig.lib.json"
     },
     {

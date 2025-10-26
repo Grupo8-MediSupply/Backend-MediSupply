@@ -1,6 +1,7 @@
 import { ProductoVariant } from "src/lib/enums/product.types";
 import { ProductoInfoRegion } from "../entities/producto.info-region.interface";
 import { ProductoBodega, ProductoDetalle } from "../entities/producto-detalle.interface";
+import { ProductoOrden } from "@medi-supply/ordenes-dm";
 
 export interface IProductoRepository {
     create(producto: ProductoInfoRegion): Promise<ProductoInfoRegion>;
@@ -8,4 +9,5 @@ export interface IProductoRepository {
     findByPais(regionId: number): Promise<ProductoInfoRegion[]>;
     findBySku(sku: string): Promise<ProductoInfoRegion | null>;
     findByBodega(bodegaId: string): Promise<ProductoBodega[]>;
+    updateStock(productoOrden: ProductoOrden[]): Promise<void>;
 }

@@ -41,6 +41,9 @@
     },
     {
       "path": "./libs/domain/bodegas-dm"
+    },
+    {
+      "path": "./libs/domain/ordenes-dm"
     }
   ]
 }

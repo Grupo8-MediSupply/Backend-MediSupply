@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
   Post,
@@ -12,6 +13,8 @@ import { ProductoService } from './producto.service';
 import { CreateProductoDto } from './dtos/request/create-producto.dto';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 import { Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
+import { ProductoOrdenDto } from '../ordenes/dtos/crear-orden.dto';
+import { ApiOkResponse } from '@nestjs/swagger';
 
 @Controller('v1/producto')
 export class ProductoController {
@@ -34,5 +37,12 @@ export class ProductoController {
   @Get(':id')
   async findById(@Param('id') id: string,@User() user: JwtPayloadDto) {
     return await this.productoService.findById(id,user);
+  }
+
+  @Post('actualizar-stock')
+  @HttpCode(200)
+  async actualizarStock(@Body() productos: ProductoOrdenDto[]) {
+    await this.productoService.actualizarStockProductos(productos);
+    return ApiOkResponse();
   }
 }

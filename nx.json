@@ -34,7 +34,8 @@
         "libs/shared/*",
         "libs/domain/core/*",
         "libs/domain/perfiles-dm/*",
-        "libs/domain/productos-dm/*"
+        "libs/domain/productos-dm/*",
+        "libs/domain/ordenes-dm/*"
       ]
     },
     {
@@ -73,7 +74,8 @@
         "libs/shared/*",
         "libs/domain/core/*",
         "libs/domain/perfiles-dm/*",
-        "libs/domain/productos-dm/*"
+        "libs/domain/productos-dm/*",
+        "libs/domain/ordenes-dm/*"
       ],
       "options": {
         "typecheck": {
