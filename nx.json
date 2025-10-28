@@ -35,7 +35,8 @@
         "libs/domain/core/*",
         "libs/domain/perfiles-dm/*",
         "libs/domain/productos-dm/*",
-        "libs/domain/ordenes-dm/*"
+        "libs/domain/ordenes-dm/*",
+        "libs/messaging-pubsub/*"
       ]
     },
     {
@@ -75,7 +76,8 @@
         "libs/domain/core/*",
         "libs/domain/perfiles-dm/*",
         "libs/domain/productos-dm/*",
-        "libs/domain/ordenes-dm/*"
+        "libs/domain/ordenes-dm/*",
+        "libs/messaging-pubsub/*"
       ],
       "options": {
         "typecheck": {

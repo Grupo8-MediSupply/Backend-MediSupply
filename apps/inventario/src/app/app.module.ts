@@ -8,6 +8,7 @@ import { ProductosRegulacionModule } from './productos-regulacion/productos-regu
 import { BodegasModule } from './bodegas/bodegas.module';
 import { MediSupplyOrdenesDmModule } from '@medi-supply/ordenes-dm';
 import { OrdenesModule } from './ordenes/ordenes.module';
+import { MediSupplyMessagingPubsubModule } from '@medi-supply/messaging-pubsub';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { OrdenesModule } from './ordenes/ordenes.module';
     BodegasModule,
     MediSupplyOrdenesDmModule,
     OrdenesModule,
+    MediSupplyMessagingPubsubModule
   ],
 })
 export class AppModule {}
