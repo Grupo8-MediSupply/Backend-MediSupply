@@ -64,7 +64,8 @@
       "exclude": [
         "apps/perfiles-e2e/**/*",
         "apps/autenticacion-e2e/**/*",
-        "apps/inventario-e2e/**/*"
+        "apps/inventario-e2e/**/*",
+        "apps/pedidos-e2e/**/*"
       ]
     },
     {

@@ -1,5 +1,5 @@
 #!/bin/sh
 set -e
 
-echo "🚀 Starting Perfiles service..."
+echo "🚀 Starting Autenticacion service..."
 exec node dist/main.js

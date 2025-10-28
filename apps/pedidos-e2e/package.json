@@ -1,0 +1,26 @@
+{
+  "name": "@medi-supply/pedidos-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@medi-supply/pedidos"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/pedidos-e2e/jest.config.ts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "@medi-supply/pedidos:build",
+          "@medi-supply/pedidos:serve"
+        ]
+      }
+    }
+  }
+}
