@@ -35,3 +35,9 @@ export class CrearOrdenClienteDto {
   @IsUUID()
   vendedor?: string;
 }
+
+export class OrdenCreadaDto {
+  @IsUUID()
+  id!: string;
+  estado?: string;
+}

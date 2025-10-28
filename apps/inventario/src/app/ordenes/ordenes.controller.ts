@@ -8,7 +8,7 @@ export class OrdenesController {
     constructor(private readonly ordenesService: OrdenesService) {}
 
     @Post('porCliente')
-    crearOrden(@Body() crearOrdenDto: CrearOrdenClienteDto,@User() jwt: JwtPayloadDto) {
-        this.ordenesService.crearOrdenPorCliente(crearOrdenDto, jwt.sub);
+    async crearOrden(@Body() crearOrdenDto: CrearOrdenClienteDto,@User() jwt: JwtPayloadDto) {
+        return await this.ordenesService.crearOrdenPorCliente(crearOrdenDto, jwt.sub);
     }
 }
