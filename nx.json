@@ -34,7 +34,9 @@
         "libs/shared/*",
         "libs/domain/core/*",
         "libs/domain/perfiles-dm/*",
-        "libs/domain/productos-dm/*"
+        "libs/domain/productos-dm/*",
+        "libs/domain/ordenes-dm/*",
+        "libs/messaging-pubsub/*"
       ]
     },
     {
@@ -62,7 +64,8 @@
       "exclude": [
         "apps/perfiles-e2e/**/*",
         "apps/autenticacion-e2e/**/*",
-        "apps/inventario-e2e/**/*"
+        "apps/inventario-e2e/**/*",
+        "apps/pedidos-e2e/**/*"
       ]
     },
     {
@@ -73,7 +76,9 @@
         "libs/shared/*",
         "libs/domain/core/*",
         "libs/domain/perfiles-dm/*",
-        "libs/domain/productos-dm/*"
+        "libs/domain/productos-dm/*",
+        "libs/domain/ordenes-dm/*",
+        "libs/messaging-pubsub/*"
       ],
       "options": {
         "typecheck": {

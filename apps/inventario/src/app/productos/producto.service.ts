@@ -15,6 +15,7 @@ import {
 import { ProductoInfoRegionResponseDto } from './dtos/response/producto-info-region.response.dto';
 import { TipoProducto } from '@medi-supply/productos-dm';
 import type { JwtPayloadDto } from '@medi-supply/shared';
+import { ProductoOrden } from '@medi-supply/ordenes-dm';
 
 
 
@@ -126,6 +127,14 @@ export class ProductoService {
 
   async obtenerProductosEnBodega(bodegaId: string,): Promise<ProductoBodega[]> {
     return this.productoRepository.findByBodega(bodegaId);
+  }
+
+  async actualizarStockProductos(productoOrden: ProductoOrden[]): Promise<void> {
+    return this.productoRepository.updateStock(productoOrden);
+  }
+
+  async findByLote(loteId: string): Promise<DetalleRegional | null> {
+    return this.productoRepository.findByLote(loteId);
   }
 
   // 🧱 Mapeo auxiliar (ya existente)

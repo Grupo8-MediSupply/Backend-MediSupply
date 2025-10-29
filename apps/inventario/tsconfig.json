@@ -7,6 +7,12 @@
       "path": "../../libs/domain/bodegas-dm"
     },
     {
+      "path": "../../libs/messaging-pubsub"
+    },
+    {
+      "path": "../../libs/domain/ordenes-dm"
+    },
+    {
       "path": "../../libs/domain/productos-dm"
     },
     {
