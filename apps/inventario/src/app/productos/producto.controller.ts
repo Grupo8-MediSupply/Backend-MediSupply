@@ -4,12 +4,14 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { ProductoService } from './producto.service';
 import { CreateProductoDto } from './dtos/request/create-producto.dto';
+import { UpdateProductoDto } from './dtos/request/update-producto.dto';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 import { Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
 
@@ -20,6 +22,17 @@ export class ProductoController {
   @Post()
   async createProducto(@Body() producto: CreateProductoDto, @User() user: JwtPayloadDto) {
     return await this.productoService.createProducto(producto, user);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.VENDEDOR, RolesEnum.ADMIN)
+  @Patch(':id')
+  async actualizarProducto(
+    @Param('id') id: string,
+    @Body() producto: UpdateProductoDto,
+    @User() user: JwtPayloadDto,
+  ) {
+    return await this.productoService.actualizarProducto(id, producto, user);
   }
 
   @UseGuards(RolesGuard)
