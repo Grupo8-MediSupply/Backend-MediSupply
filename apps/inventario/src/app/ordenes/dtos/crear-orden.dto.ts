@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsInt,
   Min,
+  IsNumber,
 } from 'class-validator';
 
 export class ProductoOrdenDto {
@@ -22,6 +23,7 @@ export class ProductoOrdenDto {
   @IsUUID()
   @IsNotEmpty()
   bodega!: string;
+
 }
 
 export class CrearOrdenClienteDto {

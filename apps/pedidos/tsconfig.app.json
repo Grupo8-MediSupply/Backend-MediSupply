@@ -22,6 +22,9 @@
   ],
   "references": [
     {
+      "path": "../../libs/domain/core/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/messaging-pubsub/tsconfig.lib.json"
     },
     {

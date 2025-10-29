@@ -45,10 +45,9 @@ export class PubSubService implements OnModuleInit, OnModuleDestroy {
     try {
       const subscription = this.pubsub.subscription(subscriptionName);
 
-      subscription.on('message', (message) => {
+      subscription.on('message', async (message) => {
         try {
-          const data = JSON.parse(message.data.toString());
-          handler(data);
+          await handler(message);
           message.ack();
         } catch (err) {
           this.logger.error(`Error procesando mensaje: ${err.message}`);

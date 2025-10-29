@@ -17,13 +17,9 @@ export class OrdenesRepository implements IOrdenesRepository {
       lote: p.lote,
       cantidad: p.cantidad,
       bodega: p.bodega,
+      precioUnitario: p.precioUnitario ?? 0,
+      productoRegional: p.productoRegional ?? undefined,
     }));
-
-    console.log('productosPlano:', productosPlano);
-    console.log(
-      'JSON.stringify(productosPlano):',
-      JSON.stringify(productosPlano)
-    );
 
     const [nuevoRegistro] = await this.db('pedidos.orden')
       .insert({

@@ -7,6 +7,7 @@ import {
   TipoProducto,
   ProductoDetalle,
   ProductoBodega,
+  DetalleRegional,
 } from '@medi-supply/productos-dm';
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
@@ -14,6 +15,21 @@ import { ProductoOrden } from 'libs/domain/ordenes-dm/src';
 
 export class ProductoRepository implements IProductoRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+  
+  async findByLote(loteId: string): Promise<DetalleRegional | null> {
+    const result = await this.db('logistica.lote as l')
+      .select(
+        'pr.id',
+        'pr.pais_id as pais',
+        'pr.proveedor_id as proveedor',
+        'pr.precio'
+      )
+      .join('productos.producto_regional as pr', 'pr.id', 'l.producto_regional_id')
+      .where('l.id', loteId)
+      .first();
+
+    return result || null;
+  }
 
   async updateStock(productos: ProductoOrden[]): Promise<void> {
     if (!productos || productos.length === 0) return;

@@ -91,6 +91,10 @@ export class ProductoService {
     return this.productoRepository.updateStock(productoOrden);
   }
 
+  async findByLote(loteId: string): Promise<DetalleRegional | null> {
+    return this.productoRepository.findByLote(loteId);
+  }
+
   // 🧱 Mapeo auxiliar (ya existente)
   private mapDtoToProductoVariant(dto: CreateProductoDto): ProductoVariant {
     const baseProps = {

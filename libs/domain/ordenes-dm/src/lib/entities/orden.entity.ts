@@ -29,4 +29,6 @@ export interface ProductoOrden{
     lote: string;
     cantidad: number;
     bodega: string;
+    precioUnitario?: number;
+    productoRegional?: string;
 }
