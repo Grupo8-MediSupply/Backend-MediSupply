@@ -2,9 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProductoController } from './producto.controller';
 import { ProductoService } from './producto.service';
 import { CreateProductoDto } from './dtos/request/create-producto.dto';
+import { UpdateProductoDto } from './dtos/request/update-producto.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { JwtPayloadDto } from '@medi-supply/shared';
-import { ProductoDetalleResponseDto } from './dtos/response/detalle-response.dto';
 import { ProductoDetalle, TipoProducto } from '@medi-supply/productos-dm';
 
 describe('ProductoController', () => {
@@ -22,6 +22,7 @@ describe('ProductoController', () => {
       createProducto: jest.fn(),
       findById: jest.fn(),
       obtenerProductosDeUnaRegion: jest.fn(),
+      actualizarProducto: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -77,6 +78,60 @@ describe('ProductoController', () => {
 
       await expect(controller.createProducto(dto, jwt)).rejects.toThrow(BadRequestException);
       expect(service.createProducto).toHaveBeenCalledWith(dto, jwt);
+    });
+  });
+
+  describe('actualizarProducto', () => {
+    it('debería delegar en el servicio y retornar el resultado', async () => {
+      const dto: UpdateProductoDto = {
+        sku: 'SKU-100',
+        nombre: 'Producto Actualizado',
+        descripcion: 'Descripción',
+        tipo: TipoProducto.EQUIPO,
+        equipoMedico: {
+          marca: 'Marca',
+          modelo: 'Modelo',
+          vidaUtil: 5,
+          requiereMantenimiento: true,
+        },
+        precioVenta: 1500,
+        proveedorId: 'prov-xyz',
+      } as UpdateProductoDto;
+
+      const expected = {
+        productoRegionalId: 'prod-123',
+        sku: dto.sku,
+        nombre: dto.nombre,
+        descripcion: dto.descripcion,
+        tipo: dto.tipo,
+        precio: dto.precioVenta,
+      };
+
+      service.actualizarProducto.mockResolvedValue(expected as any);
+
+      const result = await controller.actualizarProducto('prod-123', dto, jwt);
+
+      expect(service.actualizarProducto).toHaveBeenCalledWith('prod-123', dto, jwt);
+      expect(result).toBe(expected);
+    });
+
+    it('propaga los errores lanzados por el servicio', async () => {
+      const dto = {
+        sku: 'SKU-FAIL',
+        nombre: 'Falla',
+        descripcion: '',
+        tipo: TipoProducto.INSUMO,
+        insumoMedico: { material: 'Plástico', esteril: true, usoUnico: true },
+        precioVenta: 3,
+        proveedorId: 'prov',
+      } as UpdateProductoDto;
+
+      service.actualizarProducto.mockRejectedValue(new NotFoundException());
+
+      await expect(
+        controller.actualizarProducto('prod-404', dto, jwt),
+      ).rejects.toThrow(NotFoundException);
+      expect(service.actualizarProducto).toHaveBeenCalledWith('prod-404', dto, jwt);
     });
   });
 
