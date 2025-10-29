@@ -372,4 +372,104 @@ export class ProductoRepository implements IProductoRepository {
       throw new InternalServerErrorException('Error al consultar el producto.');
     }
   }
+
+  async update(productoRegionalId: string, producto: ProductoInfoRegion): Promise<ProductoInfoRegion> {
+    try {
+      return await this.db.transaction(async (trx) => {
+        const registro = await trx('productos.producto_regional')
+          .select('producto_global_id')
+          .where({ id: productoRegionalId })
+          .first();
+
+        if (!registro) {
+          throw new InternalServerErrorException(
+            'Producto no encontrado para actualizar.',
+          );
+        }
+
+        const globalId = registro.producto_global_id;
+
+        await trx('productos.producto_global')
+          .update({
+            sku: producto.productoGlobal.sku,
+            nombre: producto.productoGlobal.nombre,
+            descripcion: producto.productoGlobal.descripcion,
+            tipo_producto: producto.productoGlobal.tipoProducto.toUpperCase(),
+          })
+          .where({ id: globalId });
+
+        await trx('productos.medicamento')
+          .where({ producto_global_id: globalId })
+          .del();
+        await trx('productos.insumo_medico')
+          .where({ producto_global_id: globalId })
+          .del();
+        await trx('productos.equipo_medico')
+          .where({ producto_global_id: globalId })
+          .del();
+
+        if (producto.productoGlobal instanceof ProductoMedicamento) {
+          await trx('productos.medicamento').insert({
+            producto_global_id: globalId,
+            principio_activo: producto.productoGlobal.principioActivo,
+            concentracion: producto.productoGlobal.concentracion,
+            forma_farmaceutica: producto.productoGlobal.formaFarmaceutica,
+          });
+        } else if (producto.productoGlobal instanceof ProductoInsumoMedico) {
+          await trx('productos.insumo_medico').insert({
+            producto_global_id: globalId,
+            material: producto.productoGlobal.material,
+            esteril: producto.productoGlobal.esteril,
+            uso_unico: producto.productoGlobal.usoUnico,
+          });
+        } else if (producto.productoGlobal instanceof ProductoEquipoMedico) {
+          await trx('productos.equipo_medico').insert({
+            producto_global_id: globalId,
+            marca: producto.productoGlobal.marca,
+            modelo: producto.productoGlobal.modelo,
+            vida_util: producto.productoGlobal.vidaUtil,
+            requiere_mantenimiento:
+              producto.productoGlobal.requiereMantenimiento,
+          });
+        }
+
+        await trx('productos.producto_regional')
+          .update({
+            precio: producto.detalleRegional.precio,
+            proveedor_id: producto.detalleRegional.proveedor,
+            pais_id: producto.detalleRegional.pais,
+          })
+          .where({ id: productoRegionalId });
+
+        await trx('productos.producto_regulacion')
+          .where({ producto_id: productoRegionalId })
+          .del();
+
+        if (producto.detalleRegional.regulaciones?.length) {
+          const rows = producto.detalleRegional.regulaciones.map(
+            (regulacionId) => ({
+              producto_id: productoRegionalId,
+              regulacion_id: regulacionId,
+            }),
+          );
+
+          await trx('productos.producto_regulacion').insert(rows);
+        }
+
+        return {
+          productoGlobal: producto.productoGlobal,
+          detalleRegional: {
+            ...producto.detalleRegional,
+            id: productoRegionalId,
+          },
+        };
+      });
+    } catch (error) {
+      console.error('❌ Error al actualizar producto:', error);
+      throw new InternalServerErrorException(
+        'Error al actualizar la información del producto.',
+      );
+    }
+  }
+  
 }

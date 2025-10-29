@@ -9,6 +9,7 @@ export interface IProductoRepository {
     findByPais(regionId: number): Promise<ProductoInfoRegion[]>;
     findBySku(sku: string): Promise<ProductoInfoRegion | null>;
     findByBodega(bodegaId: string): Promise<ProductoBodega[]>;
+    update(productoRegionalId: string, producto: ProductoInfoRegion): Promise<ProductoInfoRegion>;
     updateStock(productoOrden: ProductoOrden[]): Promise<void>;
     findByLote(loteId: string): Promise<DetalleRegional | null>;
 }

@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ProductoService } from './producto.service';
 import { CreateProductoDto } from './dtos/request/create-producto.dto';
+import { UpdateProductoDto } from './dtos/request/update-producto.dto';
 import {
   ProductoEquipoMedico,
   ProductoInsumoMedico,
@@ -32,6 +33,7 @@ describe('ProductoService (unit)', () => {
       findBySku: jest.fn(),
       findByBodega: jest.fn(),
       // si IProductoRepository tiene más métodos, agrégalos como jest.fn()
+      update: jest.fn(),
     } as jest.Mocked<IProductoRepository>;
 
     service = new ProductoService(mockRepo);
@@ -442,6 +444,85 @@ describe('ProductoService (unit)', () => {
       expect(mockRepo.findById).toHaveBeenCalledWith('prod-uuid-2', jwt.pais);
     });
   });
+
+  describe('actualizarProducto (unit)', () => {
+  test('actualiza producto y devuelve DTO con la información nueva', async () => {
+    const dto: UpdateProductoDto = {
+      sku: 'SKU-100',
+      nombre: 'Paracetamol Forte',
+      descripcion: 'Analgésico 750mg',
+      tipo: TipoProducto.MEDICAMENTO,
+      medicamento: {
+        principioActivo: 'Paracetamol',
+        concentracion: '750mg',
+      },
+      precioVenta: 12.5,
+      proveedorId: 'prov-001',
+      regulaciones: ['reg-1', 'reg-2'],
+    };
+
+    const existente = {
+      id: 'prod-uuid-1',
+      productoPaisId: jwt.pais,
+    } as unknown as ProductoDetalle;
+
+    const actualizado = {
+      productoGlobal: new ProductoMedicamento({
+        sku: dto.sku,
+        nombre: dto.nombre,
+        descripcion: dto.descripcion,
+        tipoProducto: TipoProducto.MEDICAMENTO,
+        principioActivo: dto.medicamento!.principioActivo,
+        concentracion: dto.medicamento!.concentracion,
+      }),
+      detalleRegional: {
+        id: 'prod-uuid-1',
+        pais: jwt.pais,
+        precio: dto.precioVenta,
+        proveedor: dto.proveedorId,
+        regulaciones: dto.regulaciones,
+      },
+    } as ProductoInfoRegion;
+
+    mockRepo.findById.mockResolvedValue(existente);
+    mockRepo.update.mockResolvedValue(actualizado);
+
+    const result = await service.actualizarProducto('prod-uuid-1', dto, jwt);
+
+    expect(mockRepo.findById).toHaveBeenCalledWith('prod-uuid-1', jwt.pais);
+    expect(mockRepo.update).toHaveBeenCalledTimes(1);
+    const updatePayload = mockRepo.update.mock.calls[0][1];
+    expect(updatePayload.productoGlobal).toBeInstanceOf(ProductoMedicamento);
+    expect(result).toEqual({
+      productoRegionalId: 'prod-uuid-1',
+      sku: dto.sku,
+      nombre: dto.nombre,
+      descripcion: dto.descripcion,
+      tipo: TipoProducto.MEDICAMENTO,
+      precio: dto.precioVenta,
+    });
+  });
+
+  test('lanza NotFoundException cuando el producto no existe o pertenece a otro país', async () => {
+    mockRepo.findById.mockResolvedValue(null);
+
+    const dto = {
+      sku: 'SKU-404',
+      nombre: 'No existe',
+      descripcion: '---',
+      tipo: TipoProducto.EQUIPO,
+      equipoMedico: { marca: 'X', modelo: 'Y', vidaUtil: 1, requiereMantenimiento: false },
+      precioVenta: 1,
+      proveedorId: 'prov',
+    } as unknown as UpdateProductoDto;
+
+    await expect(
+      service.actualizarProducto('prod-uuid-404', dto, jwt),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(mockRepo.update).not.toHaveBeenCalled();
+  });
+});
+
   describe('obtenerProductosEnBodega (unit)', () => {
     let service: ProductoService;
     let mockRepo: jest.Mocked<IProductoRepository>;
