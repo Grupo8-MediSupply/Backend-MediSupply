@@ -173,6 +173,8 @@ CREATE TABLE IF NOT EXISTS usuarios.visita_cliente (
     fecha_visita TIMESTAMP NOT NULL,
     estado VARCHAR(20) NOT NULL DEFAULT 'PROGRAMADA',
     comentarios TEXT,
+    url_video TEXT NULL,
+    recomendacion TEXT NULL,
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );

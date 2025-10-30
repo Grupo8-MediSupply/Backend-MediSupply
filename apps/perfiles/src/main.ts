@@ -7,6 +7,8 @@ import {
 import { AppModule } from './app/app.module';
 import fastifyCors from '@fastify/cors'; // 👈 Importa el plugin
 import { setupSwagger } from '@medi-supply/shared';
+import multipart from '@fastify/multipart';
+
 
 async function bootstrap() {
   // 🔹 Creamos la app con FastifyAdapter
@@ -34,6 +36,12 @@ async function bootstrap() {
   // 🔹 Puerto configurable
   const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
   setupSwagger(app, 'API Perfiles', 'Módulo de gestión de perfiles');
+
+  await app.register(multipart, {
+    limits: {
+      fileSize: 30 * 1024 * 1024, // 30 MB máximo
+    },
+  });
 
   // 🔹 Escuchar en 0.0.0.0 (útil para Cloud Run o Docker)
   await app.listen({ port, host: '0.0.0.0' });
