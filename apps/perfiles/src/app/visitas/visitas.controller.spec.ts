@@ -3,12 +3,13 @@ import { VisitasController } from './visitas.controller';
 import { VisitasService } from './visitas.service';
 import { EstadoVisita } from '@medi-supply/perfiles-dm';
 import { JwtPayloadDto } from '@medi-supply/shared';
+import type { FastifyRequest } from 'fastify';
+import { BadRequestException } from '@nestjs/common';
 
 describe('VisitasController (unit)', () => {
   let controller: VisitasController;
   let service: VisitasService;
-    let jwt : JwtPayloadDto;
-  
+  let jwt: JwtPayloadDto;
 
   beforeEach(async () => {
     const mockVisitasService = {
@@ -54,12 +55,9 @@ describe('VisitasController (unit)', () => {
     const expected = { id: 'uuid-visita', ...body };
     jest.spyOn(service, 'registrarVisita').mockResolvedValue(expected as any);
 
-    const result = await controller.registrar(body,jwt);
+    const result = await controller.registrar(body, jwt);
 
-    expect(service.registrarVisita).toHaveBeenCalledWith(
-      body,
-      jwt
-    );
+    expect(service.registrarVisita).toHaveBeenCalledWith(body, jwt);
     expect(result).toEqual(expected);
   });
 
@@ -98,5 +96,147 @@ describe('VisitasController (unit)', () => {
 
     expect(service.listarPorCliente).toHaveBeenCalledWith(clienteId);
     expect(result).toEqual(expected);
+  });
+});
+
+type FilePart = {
+  type: 'file' | 'field';
+  mimetype?: string;
+  filename?: string;
+  file?: AsyncIterable<Buffer>;
+};
+
+function partsGenerator(parts: FilePart[]): AsyncIterable<FilePart> {
+  return (async function* () {
+    for (const p of parts) {
+      yield p;
+    }
+  })();
+}
+
+function fileChunks(...chunks: Buffer[]): AsyncIterable<Buffer> {
+  return (async function* () {
+    for (const c of chunks) yield c;
+  })();
+}
+
+describe('VisitasController - uploadVideo', () => {
+  let controller: VisitasController;
+  let mockVisitasService: jest.Mocked<VisitasService>;
+
+  beforeEach(() => {
+    mockVisitasService = {
+      cargarVideoVisita: jest.fn(),
+    } as unknown as jest.Mocked<VisitasService>;
+
+    controller = new VisitasController(
+      mockVisitasService as unknown as VisitasService
+    );
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('sube video correctamente, llama al servicio y devuelve url y tamaño', async () => {
+    const id = 'visita-1';
+    const jwt = { sub: 'user-1' } as unknown as JwtPayloadDto;
+    const chunks = [Buffer.from('hello'), Buffer.from('world')];
+    const part: FilePart = {
+      type: 'file',
+      mimetype: 'video/mp4',
+      filename: 'video.mp4',
+      file: fileChunks(...chunks),
+    };
+
+    const req = {
+      parts: () => partsGenerator([part]),
+    } as unknown as FastifyRequest;
+    const expectedUrl = 'https://storage/video.mp4';
+    mockVisitasService.cargarVideoVisita.mockResolvedValueOnce(expectedUrl);
+
+    const result = await controller.uploadVideo(id, req, jwt);
+
+    const expectedBuffer = Buffer.concat(chunks);
+    expect(mockVisitasService.cargarVideoVisita).toHaveBeenCalledTimes(1);
+    expect(mockVisitasService.cargarVideoVisita).toHaveBeenCalledWith(
+      id,
+      expectedBuffer,
+      'video/mp4',
+      'video.mp4',
+      jwt
+    );
+
+    expect(result).toHaveProperty('message', 'Video subido correctamente');
+    expect(result).toHaveProperty('url', expectedUrl);
+    expect(result).toHaveProperty('size');
+    // size should be a string with "MB"
+    expect(typeof result.size).toBe('string');
+    expect(result.size).toMatch(/MB$/);
+  });
+
+  it('lanza BadRequestException si el archivo no es video', async () => {
+    const id = 'visita-2';
+    const jwt = { sub: 'user-2' } as unknown as JwtPayloadDto;
+    const part: FilePart = {
+      type: 'file',
+      mimetype: 'image/png',
+      filename: 'image.png',
+      file: fileChunks(Buffer.from('data')),
+    };
+
+    const req = {
+      parts: () => partsGenerator([part]),
+    } as unknown as FastifyRequest;
+
+    await expect(controller.uploadVideo(id, req, jwt)).rejects.toBeInstanceOf(
+      BadRequestException
+    );
+    await expect(controller.uploadVideo(id, req, jwt)).rejects.toThrow(
+      'Solo se permiten archivos de video'
+    );
+    expect(mockVisitasService.cargarVideoVisita).not.toHaveBeenCalled();
+  });
+
+  it('lanza BadRequestException si el archivo supera 30MB', async () => {
+    const id = 'visita-3';
+    const jwt = { sub: 'user-3' } as unknown as JwtPayloadDto;
+    // create a single chunk > 30MB
+    const bigChunk = Buffer.alloc(31 * 1024 * 1024, 0);
+    const part: FilePart = {
+      type: 'file',
+      mimetype: 'video/mp4',
+      filename: 'big.mp4',
+      file: fileChunks(bigChunk),
+    };
+
+    const req = {
+      parts: () => partsGenerator([part]),
+    } as unknown as FastifyRequest;
+
+    // call once and assert the rejection message
+    await expect(controller.uploadVideo(id, req, jwt)).rejects.toThrow(
+      'El archivo supera el límite de 30MB'
+    );
+
+    expect(mockVisitasService.cargarVideoVisita).not.toHaveBeenCalled();
+  });
+
+  it('lanza BadRequestException si no se recibió ningún archivo', async () => {
+    const id = 'visita-4';
+    const jwt = { sub: 'user-4' } as unknown as JwtPayloadDto;
+    // parts contains only fields (no file)
+    const fieldPart: FilePart = { type: 'field' };
+    const req = {
+      parts: () => partsGenerator([fieldPart]),
+    } as unknown as FastifyRequest;
+
+    await expect(controller.uploadVideo(id, req, jwt)).rejects.toBeInstanceOf(
+      BadRequestException
+    );
+    await expect(controller.uploadVideo(id, req, jwt)).rejects.toThrow(
+      'No se recibió ningún archivo'
+    );
+    expect(mockVisitasService.cargarVideoVisita).not.toHaveBeenCalled();
   });
 });

@@ -33,4 +33,31 @@ export class VisitaCliente extends BaseEntity<string> {
   }
 }
 
+export class VisitaClienteRecomendacion extends VisitaCliente {
+  public recomendaciones: string; // Recomendaciones específicas para la visita
+  public url_video?: string | null; // URL del video asociado a la visita
+  
+  constructor(props: {
+    id?: string,
+    clienteId: string,
+    vendedorId: string,
+    fechaVisita: Date,
+    estado?: EstadoVisita,
+    comentarios?: string | null,
+    recomendaciones: string,
+    url_video?: string | null,
+  }) {
+    super({
+      id: props.id,
+      clienteId: props.clienteId,
+      vendedorId: props.vendedorId,
+      fechaVisita: props.fechaVisita,
+      estado: props.estado,
+      comentarios: props.comentarios,
+    });
+    this.recomendaciones = props.recomendaciones;
+    this.url_video = props.url_video ?? null;
+  }
+}
+
 

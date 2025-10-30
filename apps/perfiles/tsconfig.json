@@ -4,6 +4,9 @@
   "include": [],
   "references": [
     {
+      "path": "../../libs/storage-service"
+    },
+    {
       "path": "../../libs/domain/perfiles-dm"
     },
     {
