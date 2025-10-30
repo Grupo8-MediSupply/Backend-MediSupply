@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Storage } from '@google-cloud/storage';
+import { Storage, StorageOptions } from '@google-cloud/storage';
 import { randomUUID } from 'crypto';
 import { ConfigService } from '@nestjs/config';
 
@@ -14,14 +14,25 @@ export class GcpStorageService {
     const projectId = this.configService.get<string>('GCP_PROJECT_ID');
     this.bucketName = this.configService.get<string>('GCP_BUCKET_NAME', '');
 
-    // ✅ Usa Application Default Credentials (Cloud Run) o key local si está definida
-    this.storage = new Storage({
-      projectId,
-      keyFilename: this.configService.get<string>(
-        'GCP_KEYFILE_PATH',
-        "Test"
-      ),
-    });
+    // Detectamos entorno
+    const isLocal = this.configService.get<string>('NODE_ENV') !== 'production';
+
+    const options: StorageOptions = { projectId };
+
+    // Solo en entorno local usamos keyfile
+    if (isLocal) {
+      const keyFilename = this.configService.get<string>('GCP_KEYFILE_PATH');
+      if (keyFilename) {
+        options.keyFilename = keyFilename;
+        this.logger.log(`🧩 Usando credenciales locales: ${keyFilename}`);
+      } else {
+        this.logger.warn('⚠️ No se encontró GCP_KEYFILE_PATH en entorno local.');
+      }
+    } else {
+      this.logger.log('☁️ Usando credenciales automáticas (ADC) en Cloud Run');
+    }
+
+    this.storage = new Storage(options);
   }
 
   private get bucket() {
