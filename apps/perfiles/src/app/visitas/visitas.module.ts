@@ -3,6 +3,7 @@ import { VisitasService } from './visitas.service';
 import { VisitasController } from './visitas.controller';
 import { VisitaRepository } from './repositories/visita.repository';
 import { ClientesModule } from '../clientes/clientes.module';
+import { MediSupplyStorageServiceModule } from '@medi-supply/storage-service';
 
 @Module({
   controllers: [VisitasController],
@@ -13,6 +14,6 @@ import { ClientesModule } from '../clientes/clientes.module';
       useClass: VisitaRepository,
     },
   ],
-  imports: [ClientesModule]
+  imports: [ClientesModule,MediSupplyStorageServiceModule]
 })
 export class VisitasModule {}

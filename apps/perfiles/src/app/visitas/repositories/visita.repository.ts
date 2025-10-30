@@ -14,6 +14,33 @@ import {
 @Injectable()
 export class VisitaRepository implements IVisitaRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+  async updateEvidenciaVideo(id: string, urlVideo: string): Promise<void> {
+    return await this.db('usuarios.visita_cliente')
+      .where({ id })
+      .update({ url_video: urlVideo, updated_at: this.db.fn.now() })
+      .then((updated) => {
+        if (updated === 0) {
+          throw new NotFoundException('Visita no encontrada');
+        }
+      });
+  }
+  
+  async findById(id: string): Promise<VisitaCliente | null> {
+    return await this.db('usuarios.visita_cliente')
+      .where({ id })
+      .first()
+      .then((v) => {
+        if (!v) return null;
+        return new VisitaCliente({
+          id: v.id,
+          clienteId: v.cliente_id,
+          vendedorId: v.vendedor_id,
+          fechaVisita: v.fecha_visita,
+          estado: v.estado,
+          comentarios: v.comentarios,
+        });
+      });
+  }
 
   async create(visita: VisitaCliente): Promise<VisitaCliente> {
     try {

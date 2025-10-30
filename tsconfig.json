@@ -53,6 +53,9 @@
     },
     {
       "path": "./apps/pedidos"
+    },
+    {
+      "path": "./libs/storage-service"
     }
   ]
 }
