@@ -9,6 +9,7 @@ import { BodegasModule } from './bodegas/bodegas.module';
 import { MediSupplyOrdenesDmModule } from '@medi-supply/ordenes-dm';
 import { OrdenesModule } from './ordenes/ordenes.module';
 import { MediSupplyMessagingPubsubModule } from '@medi-supply/messaging-pubsub';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { MediSupplyMessagingPubsubModule } from '@medi-supply/messaging-pubsub';
     BodegasModule,
     MediSupplyOrdenesDmModule,
     OrdenesModule,
-    MediSupplyMessagingPubsubModule
+    MediSupplyMessagingPubsubModule,
+    ReportesModule,
   ],
 })
 export class AppModule {}
