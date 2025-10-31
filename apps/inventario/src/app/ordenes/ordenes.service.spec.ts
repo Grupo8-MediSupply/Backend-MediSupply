@@ -3,11 +3,12 @@ import { OrdenesService } from './ordenes.service';
 import { PubSubService } from '@medi-supply/messaging-pubsub';
 import { ProductoService } from '../productos/producto.service';
 import { CrearOrdenClienteDto } from './dtos/crear-orden.dto';
+import { Lote } from '@medi-supply/bodegas-dm';
+import { JwtPayloadDto } from 'libs/shared/src';
+import { BodegasService } from '../bodegas/bodegas.service';
 
-// TypeScript
-// Additional tests to append to apps/inventario/src/app/ordenes/ordenes.service.spec.ts
-
-type ProductoDto = { lote: string; cantidad: number };
+// Local helper types
+type ProductoDto = { lote: string; cantidad: number; bodega?: string };
 type CrearOrdenClienteDtoLocal = { productos: ProductoDto[]; vendedor?: string };
 type ProductoInfo = { id: string; precio: number } | undefined;
 type OrdenPersisted = { id: string; estado: string; [key: string]: unknown };
@@ -18,7 +19,9 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
   // typed mocks
   let mockPubSub: { publish: jest.Mock };
   let mockProductoService: { findByLote: jest.Mock<Promise<ProductoInfo>, [string]> };
+  let mockBodegasService: { findLoteEnBodega: jest.Mock<Promise<Lote | null>, [string, string | undefined]> };
   let mockRepository: { crearOrden: jest.Mock<Promise<OrdenPersisted>, [unknown]> };
+  let jwt: JwtPayloadDto;
 
   beforeEach(async () => {
     mockPubSub = { publish: jest.fn() };
@@ -31,12 +34,20 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
       crearOrden: jest.fn<Promise<OrdenPersisted>, [unknown]>(),
     };
 
+    // Provide a sensible default: lote exists in bodega
+    mockBodegasService = {
+      findLoteEnBodega: jest.fn<Promise<Lote | null>, [string, string | undefined]>().mockResolvedValue({} as Lote),
+    };
+
+    jwt = { sub: 'client-123', pais: 1, email: 'client@example.com', role: 1 };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrdenesService,
         { provide: PubSubService, useValue: mockPubSub },
         { provide: 'IOrdenesRepository', useValue: mockRepository },
         { provide: ProductoService, useValue: mockProductoService },
+        { provide: BodegasService, useValue: mockBodegasService },
       ],
     }).compile();
 
@@ -45,7 +56,7 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
 
   it('creates order, enriches productos when producto info exists, publishes and returns id/estado', async () => {
     const crearDto: CrearOrdenClienteDtoLocal = {
-      productos: [{ lote: 'L1', cantidad: 2 }],
+      productos: [{ lote: 'L1', cantidad: 2, bodega: 'B1' }],
       vendedor: 'v-1',
     };
     const clienteId = 'c-1';
@@ -53,13 +64,11 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     mockProductoService.findByLote.mockResolvedValueOnce({ id: 'regional-1', precio: 500 });
 
     const persisted: OrdenPersisted = { id: 'order-1', estado: 'CREADA', cliente: clienteId };
-    mockRepository.crearOrden.mockImplementationOnce(async (orden) => {
-      // return persisted order; preserve orden structure not required but helpful
-      return persisted;
-    });
+    mockRepository.crearOrden.mockImplementationOnce(async () => persisted);
 
-    const result = await service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId);
+    const result = await service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId, jwt.pais);
 
+    expect(mockBodegasService.findLoteEnBodega).toHaveBeenCalledWith('L1', 'B1');
     expect(mockProductoService.findByLote).toHaveBeenCalledTimes(1);
     expect(mockProductoService.findByLote).toHaveBeenCalledWith('L1');
 
@@ -81,7 +90,7 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
 
   it('sets productoRegional and precioUnitario undefined when producto info is not found', async () => {
     const crearDto: CrearOrdenClienteDtoLocal = {
-      productos: [{ lote: 'L2', cantidad: 1 }],
+      productos: [{ lote: 'L2', cantidad: 1, bodega: 'B2' }],
       vendedor: 'v-2',
     };
     const clienteId = 'c-2';
@@ -91,7 +100,7 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     const persisted: OrdenPersisted = { id: 'order-2', estado: 'PENDIENTE' };
     mockRepository.crearOrden.mockResolvedValueOnce(persisted);
 
-    const result = await service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId);
+    const result = await service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId, jwt.pais);
 
     const calledWith = mockRepository.crearOrden.mock.calls[0][0] as { productos: Array<Record<string, unknown>> };
     expect(calledWith.productos[0].productoRegional).toBeUndefined();
@@ -104,8 +113,8 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
   it('calls findByLote for each producto when multiple productos provided', async () => {
     const crearDto: CrearOrdenClienteDtoLocal = {
       productos: [
-        { lote: 'A', cantidad: 1 },
-        { lote: 'B', cantidad: 3 },
+        { lote: 'A', cantidad: 1, bodega: 'B-A' },
+        { lote: 'B', cantidad: 3, bodega: 'B-B' },
       ],
       vendedor: 'v-3',
     };
@@ -118,8 +127,9 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     const persisted: OrdenPersisted = { id: 'order-3', estado: 'CREADA' };
     mockRepository.crearOrden.mockResolvedValueOnce(persisted);
 
-    await service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId);
+    await service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId, jwt.pais);
 
+    expect(mockBodegasService.findLoteEnBodega).toHaveBeenCalledTimes(2);
     expect(mockProductoService.findByLote).toHaveBeenCalledTimes(2);
     expect(mockProductoService.findByLote).toHaveBeenNthCalledWith(1, 'A');
     expect(mockProductoService.findByLote).toHaveBeenNthCalledWith(2, 'B');
@@ -133,7 +143,7 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
 
   it('propagates errors from repository and does not publish when creation fails', async () => {
     const crearDto: CrearOrdenClienteDtoLocal = {
-      productos: [{ lote: 'X', cantidad: 5 }],
+      productos: [{ lote: 'X', cantidad: 5, bodega: 'BX' }],
     };
     const clienteId = 'c-err';
 
@@ -142,13 +152,13 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     const error = new Error('DB failure');
     mockRepository.crearOrden.mockRejectedValueOnce(error);
 
-    await expect(service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId)).rejects.toThrow('DB failure');
+    await expect(service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId, jwt.pais)).rejects.toThrow('DB failure');
 
     expect(mockRepository.crearOrden).toHaveBeenCalledTimes(1);
     expect(mockPubSub.publish).not.toHaveBeenCalled();
   });
 
-  it('handles empty productos array without calling findByLote', async () => {
+  it('handles empty productos array without calling findByLote or bodegas', async () => {
     const crearDto: CrearOrdenClienteDtoLocal = {
       productos: [],
       vendedor: 'v-empty',
@@ -158,8 +168,9 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     const persisted: OrdenPersisted = { id: 'order-empty', estado: 'CREADA' };
     mockRepository.crearOrden.mockResolvedValueOnce(persisted);
 
-    const result = await service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId);
+    const result = await service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId, jwt.pais);
 
+    expect(mockBodegasService.findLoteEnBodega).not.toHaveBeenCalled();
     expect(mockProductoService.findByLote).not.toHaveBeenCalled();
     expect(mockRepository.crearOrden).toHaveBeenCalledTimes(1);
     const calledWith = mockRepository.crearOrden.mock.calls[0][0] as { productos: unknown[] };
@@ -168,5 +179,23 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
 
     expect(mockPubSub.publish).toHaveBeenCalledWith('ordenes', persisted);
     expect(result).toEqual({ id: 'order-empty', estado: 'CREADA' });
+  });
+
+  it('throws when lote not found in bodega', async () => {
+    const crearDto: CrearOrdenClienteDtoLocal = {
+      productos: [{ lote: 'MISS', cantidad: 1, bodega: 'B-MISS' }],
+    };
+    const clienteId = 'c-miss';
+
+    // Simulate lote missing
+    mockBodegasService.findLoteEnBodega.mockResolvedValueOnce(null);
+
+    await expect(service.crearOrdenPorCliente(crearDto as unknown as CrearOrdenClienteDto, clienteId, jwt.pais)).rejects.toThrow(
+      `El lote MISS no existe en la bodega B-MISS.`
+    );
+
+    expect(mockProductoService.findByLote).not.toHaveBeenCalled();
+    expect(mockRepository.crearOrden).not.toHaveBeenCalled();
+    expect(mockPubSub.publish).not.toHaveBeenCalled();
   });
 });

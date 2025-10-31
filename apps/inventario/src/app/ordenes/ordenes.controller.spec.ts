@@ -34,6 +34,9 @@ describe('OrdenesController', () => {
 
     controller.crearOrden(dto, jwt);
 
-    expect(ordenesServiceMock.crearOrdenPorCliente).toHaveBeenCalledWith(dto, 'user-123');
+    expect(ordenesServiceMock.crearOrdenPorCliente).toHaveBeenCalledTimes(1);
+    const callArgs = ordenesServiceMock.crearOrdenPorCliente.mock.calls[0];
+    expect(callArgs[0]).toBe(dto);
+    expect(callArgs[1]).toBe('user-123');
   });
 });
