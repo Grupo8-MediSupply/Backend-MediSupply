@@ -52,25 +52,20 @@ describe('VisitasService (unit)', () => {
   test('debería registrar una visita correctamente', async () => {
     const clienteId = 'uuid-cliente';
     const vendedorId = 'uuid-vendedor';
-    const fechaVisita = new Date(Date.now() + 10000); // fecha futura
+    const fechaVisita = new Date(Date.now() + 10000);
     const comentarios = 'Visita programada para seguimiento';
 
-    const props ={
-      clienteId:crearVisitaDto.clienteId,
-      vendedorId:vendedorId,
-      fechaVisita:crearVisitaDto.fechaVisita,
-      comentarios:crearVisitaDto.comentarios,
-    }
+    const props = {
+      clienteId: crearVisitaDto.clienteId,
+      vendedorId: vendedorId,
+      fechaVisita: crearVisitaDto.fechaVisita,
+      comentarios: crearVisitaDto.comentarios,
+    };
 
-    const createdVisita = new VisitaCliente(
-      props
-    );
-
+    const createdVisita = new VisitaCliente(props);
     mockRepo.create.mockResolvedValue(createdVisita);
 
-    const result = await service.registrarVisita(
-      crearVisitaDto,jwt
-    );
+    const result = await service.registrarVisita(crearVisitaDto, jwt);
 
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
     expect(mockRepo.create.mock.calls[0][0]).toBeInstanceOf(VisitaCliente);
@@ -80,12 +75,9 @@ describe('VisitasService (unit)', () => {
   // ❌ Fecha pasada lanza error
   test('debería lanzar BadRequestException si la fecha es pasada', async () => {
     const fechaPasada = new Date(Date.now() - 10000);
-
     crearVisitaDto.fechaVisita = fechaPasada;
 
-    await expect(
-      service.registrarVisita(crearVisitaDto,jwt),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.registrarVisita(crearVisitaDto, jwt)).rejects.toThrow(BadRequestException);
   });
 
   // ✅ Cambiar estado
@@ -102,7 +94,6 @@ describe('VisitasService (unit)', () => {
   test('debería llamar al repositorio al agregar comentario', async () => {
     const id = 'uuid-visita';
     const comentario = 'Cliente interesado en nuevo producto';
-
     mockRepo.addComentario.mockResolvedValue();
 
     await service.agregarComentario(id, comentario);
@@ -113,24 +104,21 @@ describe('VisitasService (unit)', () => {
   // ✅ Listar por cliente
   test('debería listar visitas por cliente correctamente', async () => {
     const clienteId = 'uuid-cliente';
-    const props1 ={
-      id:'uuid-visita-1',
-      clienteId:clienteId,
-      vendedorId:'vend1',
-      fechaVisita:new Date(),
-      estado:EstadoVisita.PROGRAMADA,
-    }
-    const props2 ={
-      id:'uuid-visita-2',
-      clienteId:clienteId,
-      vendedorId:'vend2',
-      fechaVisita:new Date(),
-      estado:EstadoVisita.FINALIZADA,
-    }
-    const visitas = [
-      new VisitaCliente(props1),
-      new VisitaCliente(props2),
-    ];
+    const props1 = {
+      id: 'uuid-visita-1',
+      clienteId: clienteId,
+      vendedorId: 'vend1',
+      fechaVisita: new Date(),
+      estado: EstadoVisita.PROGRAMADA,
+    };
+    const props2 = {
+      id: 'uuid-visita-2',
+      clienteId: clienteId,
+      vendedorId: 'vend2',
+      fechaVisita: new Date(),
+      estado: EstadoVisita.FINALIZADA,
+    };
+    const visitas = [new VisitaCliente(props1), new VisitaCliente(props2)];
 
     mockRepo.findByCliente.mockResolvedValue(visitas);
 
@@ -140,6 +128,7 @@ describe('VisitasService (unit)', () => {
     expect(result).toEqual(visitas);
   });
 
+  // ✅ Consultar ruta sin resultados
   test('debería retornar mensaje cuando no hay visitas en la fecha consultada', async () => {
     mockRepo.findRutaPorFecha.mockResolvedValue([]);
 
@@ -160,6 +149,7 @@ describe('VisitasService (unit)', () => {
     expect(result.mensaje).toContain('No tiene visitas programadas');
   });
 
+  // ✅ Consultar ruta con resultados
   test('debería mapear visitas programadas y devolver totales', async () => {
     const visitasProgramadas: RutaVisitaProgramada[] = [
       {
@@ -185,40 +175,38 @@ describe('VisitasService (unit)', () => {
     expect(result).not.toHaveProperty('mensaje');
   });
 
+  // ❌ Fecha inválida
   test('debería lanzar BadRequestException si la fecha tiene formato inválido', async () => {
-    await expect(
-      service.consultarRutaPorFecha('fecha-invalida', jwt)
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.consultarRutaPorFecha('fecha-invalida', jwt)).rejects.toBeInstanceOf(
+      BadRequestException
+    );
     expect(mockRepo.findRutaPorFecha).not.toHaveBeenCalled();
   });
 });
 
+// --------------------------------------------------------------
+// 🧩 Pruebas unitarias de VisitasService.cargarVideoVisita
+// --------------------------------------------------------------
 
 type VisitaEntity = {
   id: string;
   vendedorId: string;
   clienteId: string;
-  // other fields not required for tests
 };
 
 describe('VisitasService.cargarVideoVisita', () => {
   let service: VisitasService;
-
-  // minimal mocks typed without using `any`
   let mockVisitaRepo: {
     findById: jest.Mock<Promise<VisitaEntity | null>, [string]>;
     updateEvidenciaVideo: jest.Mock<Promise<void>, [string, string]>;
   };
-
   let mockGcpStorage: {
     uploadBuffer: jest.Mock<
       Promise<{ objectUrl: string; signedUrl: string }>,
       [Buffer, string, string]
     >;
   };
-
   let mockClientesService: {
-    // only present because constructor requires it, not used in these tests
     findById: jest.Mock<Promise<unknown>, [string]>;
   };
 
@@ -237,7 +225,7 @@ describe('VisitasService.cargarVideoVisita', () => {
     };
 
     service = new VisitasService(
-      mockVisitaRepo as unknown as any, // constructor injection uses token; cast only for runtime
+      mockVisitaRepo as unknown as any,
       mockClientesService as unknown as any,
       mockGcpStorage as unknown as any
     );
@@ -295,6 +283,42 @@ describe('VisitasService.cargarVideoVisita', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(mockGcpStorage.uploadBuffer).not.toHaveBeenCalled();
+    expect(mockVisitaRepo.updateEvidenciaVideo).not.toHaveBeenCalled();
+  });
+
+  // ✅ NUEVO 1: permite admin aunque no sea propietario
+  it('permite admin aunque no sea propietario', async () => {
+    const visita: VisitaEntity = { id: 'v3', vendedorId: 'owner-x', clienteId: 'c3' };
+    mockVisitaRepo.findById.mockResolvedValueOnce(visita);
+
+    const objectUrl = 'o';
+    const signedUrl = 's';
+    mockGcpStorage.uploadBuffer.mockResolvedValueOnce({ objectUrl, signedUrl });
+
+    const buffer = Buffer.from('x');
+    const jwt: JwtPayloadDto = { sub: 'other', role: RolesEnum.ADMIN } as JwtPayloadDto;
+
+    const result = await service.cargarVideoVisita(visita.id, buffer, 'video/mp4', 'f.mp4', jwt);
+
+    expect(result).toBe(signedUrl);
+    expect(mockVisitaRepo.updateEvidenciaVideo).toHaveBeenCalledWith(visita.id, objectUrl);
+  });
+
+  // ✅ NUEVO 2: propaga error de uploadBuffer y no actualiza evidencia
+  it('propaga error de uploadBuffer y no actualiza la evidencia', async () => {
+    const visita: VisitaEntity = { id: 'v4', vendedorId: 'user-4', clienteId: 'c4' };
+    mockVisitaRepo.findById.mockResolvedValueOnce(visita);
+
+    const uploadError = new Error('upload failed');
+    mockGcpStorage.uploadBuffer.mockRejectedValueOnce(uploadError);
+
+    const buffer = Buffer.from('x');
+    const jwt: JwtPayloadDto = { sub: 'user-4', role: RolesEnum.VENDEDOR } as JwtPayloadDto;
+
+    await expect(
+      service.cargarVideoVisita(visita.id, buffer, 'video/mp4', 'f.mp4', jwt)
+    ).rejects.toBe(uploadError);
+
     expect(mockVisitaRepo.updateEvidenciaVideo).not.toHaveBeenCalled();
   });
 });
