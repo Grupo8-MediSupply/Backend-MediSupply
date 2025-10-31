@@ -43,17 +43,24 @@ export class ReportesRepository implements IReportesRepository {
       })
       .select(
         this.db.raw(
-          'COALESCE(SUM(od.cantidad * od.precio_unitario), 0) AS ventas_totales',
+          'COALESCE(SUM(od.cantidad * od.precio_unitario), 0) AS "ventasTotales"',
         ),
       )
       .select(
-        this.db.raw('COUNT(DISTINCT o.id) AS pedidos_gestionados'),
+        this.db.raw('COUNT(DISTINCT o.id) AS "pedidosGestionados"'),
       )
       .select(
         this.db.raw(
-          'CASE WHEN COUNT(DISTINCT o.id) = 0 THEN 0 ELSE COALESCE(SUM(od.cantidad * od.precio_unitario) / NULLIF(COUNT(DISTINCT o.id), 0), 0) END AS valor_promedio_pedido',
+          `CASE
+            WHEN COUNT(DISTINCT o.id) = 0 THEN 0
+            ELSE COALESCE(
+              SUM(od.cantidad * od.precio_unitario) / NULLIF(COUNT(DISTINCT o.id), 0),
+              0
+            )
+          END AS "valorPromedioPedido"`,
         ),
       )
+      .whereNotNull('o.vendedor_id')
       .groupBy('v.id', 'v.nombre', 'pv.id', 'pv.nombre');
 
     if (filtros.vendedorId) {
@@ -66,10 +73,7 @@ export class ReportesRepository implements IReportesRepository {
 
     if (filtros.productoId) {
       query.where(function productFilter() {
-        this.where('pr.id', filtros.productoId).orWhere(
-          'pg.id',
-          filtros.productoId,
-        );
+        this.where('pr.id', filtros.productoId).orWhere('pg.id', filtros.productoId);
       });
     }
 
