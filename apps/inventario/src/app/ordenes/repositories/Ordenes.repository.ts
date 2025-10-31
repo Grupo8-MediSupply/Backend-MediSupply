@@ -26,10 +26,11 @@ export class OrdenesRepository implements IOrdenesRepository {
         id: orden.id,
         cliente_id: orden.cliente,
         vendedor_id: orden.vendedor || null,
-        total: 0,
+        total: productosPlano.reduce((acc, p) => acc + p.cantidad * p.precioUnitario, 0),
         productos_snapshot: this.db.raw('?::jsonb', [
           JSON.stringify(productosPlano),
         ]), // ✅ ahora sí será JSON válido
+        pais_id: orden.pais,
       })
       .returning('*');
 
@@ -39,6 +40,7 @@ export class OrdenesRepository implements IOrdenesRepository {
       vendedor: nuevoRegistro.vendedor_id,
       productos: nuevoRegistro.productos_snapshot,
       estado: nuevoRegistro.estado,
+      pais: nuevoRegistro.pais_id,
     });
   }
 }

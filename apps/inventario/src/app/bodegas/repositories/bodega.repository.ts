@@ -1,9 +1,31 @@
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
 import { IBodegaRepository, Bodega } from '@medi-supply/bodegas-dm';
+import { Lote } from 'node_modules/@medi-supply/bodegas-dm/src/lib/entities/lote.entity';
 
 export class BodegaRepository implements IBodegaRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+  async findLoteEnBodega(
+    loteId: string,
+    bodegaId: string
+  ): Promise<Lote | null> {
+    return await this.db('logistica.inventario as i')
+      .join('logistica.lote as l', 'l.id', 'i.lote_id')
+      .select(
+        'l.id',
+        'l.producto_regional_id as productoId',
+        'l.cantidad_inicial as cantidad',
+        'l.fecha_vencimiento as fechaVencimiento',
+        'l.estado',
+        'l.numero',
+        'i.created_at as createdAt',
+        'i.updated_at as updatedAt'
+      )
+      .where('l.id', loteId)
+      .andWhere('i.bodega_id', bodegaId)
+      .first();
+  }
+
   findByPaisId(paisId: number): Promise<Bodega[]> {
     return this.db('logistica.bodega')
       .select(
@@ -17,7 +39,7 @@ export class BodegaRepository implements IBodegaRepository {
         'updated_at as updatedAt',
         'estado'
       )
-      .where({ pais_id:paisId })
+      .where({ pais_id: paisId })
       .then((rows) => rows.map((r) => new Bodega(r)));
   }
 
@@ -32,7 +54,7 @@ export class BodegaRepository implements IBodegaRepository {
           'capacidad',
           'responsable',
           'created_at as createdAt',
-          'updated_at as updatedAt',
+          'updated_at as updatedAt'
         )
         .orderBy('nombre', 'asc');
 
@@ -48,7 +70,7 @@ export class BodegaRepository implements IBodegaRepository {
             createdAt: r.createdAt,
             updatedAt: r.updatedAt,
             estado: r.estado,
-          }),
+          })
       );
     } catch (error) {
       console.error('❌ Error al consultar bodegas:', error);
@@ -67,7 +89,7 @@ export class BodegaRepository implements IBodegaRepository {
           'capacidad',
           'responsable',
           'created_at as createdAt',
-          'updated_at as updatedAt',
+          'updated_at as updatedAt'
         )
         .where({ id })
         .first();

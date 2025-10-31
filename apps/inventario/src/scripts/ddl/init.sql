@@ -166,3 +166,31 @@ ALTER TABLE productos.producto_regional
 ADD CONSTRAINT producto_regional_unico UNIQUE (producto_global_id, pais_id);
 
 
+-- Asegúrate de que la extensión PostGIS esté habilitada
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+-- Agregar columna geography para coordenadas
+ALTER TABLE logistica.bodega
+ADD COLUMN ubicacion_geografica geography(Point, 4326);
+
+-- Crear índice espacial para consultas rápidas
+CREATE INDEX IF NOT EXISTS idx_bodega_ubicacion_geografica
+ON logistica.bodega
+USING GIST(ubicacion_geografica);
+
+
+CREATE TABLE IF NOT EXISTS logistica.vehiculo (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    marca VARCHAR(100) NOT NULL,
+    modelo VARCHAR(100) NOT NULL,
+    placa VARCHAR(50) UNIQUE NOT NULL,
+    pais_id INT NOT NULL,
+    ubicacion GEOGRAPHY(Point, 4326), -- Coordenadas GPS (latitud/longitud)
+    activo BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
+);
+
+
+
+
