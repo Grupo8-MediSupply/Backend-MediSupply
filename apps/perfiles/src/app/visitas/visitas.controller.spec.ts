@@ -17,6 +17,7 @@ describe('VisitasController (unit)', () => {
       cambiarEstado: jest.fn(),
       agregarComentario: jest.fn(),
       listarPorCliente: jest.fn(),
+      consultarRutaPorFecha: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -97,7 +98,23 @@ describe('VisitasController (unit)', () => {
     expect(service.listarPorCliente).toHaveBeenCalledWith(clienteId);
     expect(result).toEqual(expected);
   });
+
+  // ✅ consultarRutaPorFecha()
+  it('debería delegar en el servicio la consulta de ruta por fecha', async () => {
+    const query = { fecha: '2024-07-20' };
+    const expected = { totalVisitas: 0, visitas: [] };
+    jest.spyOn(service, 'consultarRutaPorFecha').mockResolvedValue(expected as any);
+
+    const result = await controller.consultarRutaPorFecha(query as any, jwt);
+
+    expect(service.consultarRutaPorFecha).toHaveBeenCalledWith(query.fecha, jwt);
+    expect(result).toEqual(expected);
+  });
 });
+
+// ----------------------------------------------------------
+// 🔽 Utilidades auxiliares para pruebas de carga de video
+// ----------------------------------------------------------
 
 type FilePart = {
   type: 'file' | 'field';
@@ -120,6 +137,10 @@ function fileChunks(...chunks: Buffer[]): AsyncIterable<Buffer> {
   })();
 }
 
+// ----------------------------------------------------------
+// 🔽 Pruebas unitarias del método uploadVideo()
+// ----------------------------------------------------------
+
 describe('VisitasController - uploadVideo', () => {
   let controller: VisitasController;
   let mockVisitasService: jest.Mocked<VisitasService>;
@@ -138,6 +159,7 @@ describe('VisitasController - uploadVideo', () => {
     jest.resetAllMocks();
   });
 
+  // ✅ caso exitoso
   it('sube video correctamente, llama al servicio y devuelve url y tamaño', async () => {
     const id = 'visita-1';
     const jwt = { sub: 'user-1' } as unknown as JwtPayloadDto;
@@ -170,11 +192,11 @@ describe('VisitasController - uploadVideo', () => {
     expect(result).toHaveProperty('message', 'Video subido correctamente');
     expect(result).toHaveProperty('url', expectedUrl);
     expect(result).toHaveProperty('size');
-    // size should be a string with "MB"
     expect(typeof result.size).toBe('string');
     expect(result.size).toMatch(/MB$/);
   });
 
+  // ⚠️ tipo inválido
   it('lanza BadRequestException si el archivo no es video', async () => {
     const id = 'visita-2';
     const jwt = { sub: 'user-2' } as unknown as JwtPayloadDto;
@@ -198,10 +220,10 @@ describe('VisitasController - uploadVideo', () => {
     expect(mockVisitasService.cargarVideoVisita).not.toHaveBeenCalled();
   });
 
+  // ⚠️ archivo demasiado grande
   it('lanza BadRequestException si el archivo supera 30MB', async () => {
     const id = 'visita-3';
     const jwt = { sub: 'user-3' } as unknown as JwtPayloadDto;
-    // create a single chunk > 30MB
     const bigChunk = Buffer.alloc(31 * 1024 * 1024, 0);
     const part: FilePart = {
       type: 'file',
@@ -214,7 +236,6 @@ describe('VisitasController - uploadVideo', () => {
       parts: () => partsGenerator([part]),
     } as unknown as FastifyRequest;
 
-    // call once and assert the rejection message
     await expect(controller.uploadVideo(id, req, jwt)).rejects.toThrow(
       'El archivo supera el límite de 30MB'
     );
@@ -222,10 +243,10 @@ describe('VisitasController - uploadVideo', () => {
     expect(mockVisitasService.cargarVideoVisita).not.toHaveBeenCalled();
   });
 
+  // ⚠️ sin archivo recibido
   it('lanza BadRequestException si no se recibió ningún archivo', async () => {
     const id = 'visita-4';
     const jwt = { sub: 'user-4' } as unknown as JwtPayloadDto;
-    // parts contains only fields (no file)
     const fieldPart: FilePart = { type: 'field' };
     const req = {
       parts: () => partsGenerator([fieldPart]),

@@ -8,6 +8,7 @@ import {
   UseGuards,
   Req,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { VisitasService } from './visitas.service';
 import { EstadoVisita } from '@medi-supply/perfiles-dm';
@@ -15,6 +16,7 @@ import { CreateVisitaDto } from './dtos/request/create-visita.dto';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 import { Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
 import type { FastifyRequest } from 'fastify';
+import { RutaVisitasQueryDto } from './dtos/request/ruta-visitas.query.dto';
 
 @Controller('v1/visitas')
 export class VisitasController {
@@ -50,6 +52,16 @@ export class VisitasController {
   @Get('cliente/:clienteId')
   listar(@Param('clienteId') clienteId: string) {
     return this.visitasService.listarPorCliente(clienteId);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.VENDEDOR)
+  @Get('ruta')
+  consultarRutaPorFecha(
+    @Query() query: RutaVisitasQueryDto,
+    @User() user: JwtPayloadDto
+  ) {
+    return this.visitasService.consultarRutaPorFecha(query.fecha, user);
   }
 
   @UseGuards(RolesGuard)

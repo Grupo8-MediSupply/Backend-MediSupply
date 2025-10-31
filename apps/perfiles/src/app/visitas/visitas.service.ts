@@ -6,11 +6,12 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import type { IVisitaRepository } from '@medi-supply/perfiles-dm';
-import { VisitaCliente, EstadoVisita } from '@medi-supply/perfiles-dm';
+  import { VisitaCliente, EstadoVisita } from '@medi-supply/perfiles-dm';
 import { CreateVisitaDto } from './dtos/request/create-visita.dto';
 import { RolesEnum, type JwtPayloadDto } from '@medi-supply/shared';
 import { ClientesService } from '../clientes/clientes.service';
 import { GcpStorageService } from '@medi-supply/storage-service';
+import { RutaVisitaResponseDto } from './dtos/response/ruta-visita.response.dto';
 
 @Injectable()
 export class VisitasService {
@@ -52,6 +53,56 @@ export class VisitasService {
 
   async listarPorCliente(clienteId: string) {
     return this.visitaRepo.findByCliente(clienteId);
+  }
+
+  async consultarRutaPorFecha(fecha: string, vendedor: JwtPayloadDto) {
+    const fechaSeleccionada = new Date(fecha);
+
+    if (Number.isNaN(fechaSeleccionada.getTime())) {
+      throw new BadRequestException('La fecha proporcionada no es válida');
+    }
+
+    const inicio = new Date(fechaSeleccionada);
+    inicio.setUTCHours(0, 0, 0, 0);
+
+    const fin = new Date(fechaSeleccionada);
+    fin.setUTCHours(23, 59, 59, 999);
+
+    const visitasProgramadas = await this.visitaRepo.findRutaPorFecha(
+      vendedor.sub,
+      inicio,
+      fin
+    );
+
+    const visitas = visitasProgramadas.map(
+      (visita) =>
+        new RutaVisitaResponseDto({
+          visitaId: visita.visitaId,
+          clienteId: visita.clienteId,
+          nombreCliente: visita.nombreCliente,
+          fechaVisita: visita.fechaVisita,
+          estado: visita.estado,
+          direccion: visita.direccion ?? undefined,
+          latitud: visita.latitud ?? undefined,
+          longitud: visita.longitud ?? undefined,
+        })
+    );
+
+    if (visitas.length === 0) {
+      return {
+        fecha: fechaSeleccionada.toISOString(),
+        totalVisitas: 0,
+        visitas: [],
+        mensaje:
+          'No tiene visitas programadas para la fecha seleccionada. ¿Desea agendar una nueva visita?',
+      } as const;
+    }
+
+    return {
+      fecha: fechaSeleccionada.toISOString(),
+      totalVisitas: visitas.length,
+      visitas,
+    } as const;
   }
 
   async cargarVideoVisita(
