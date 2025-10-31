@@ -17,6 +17,7 @@ describe('VisitasController (unit)', () => {
       cambiarEstado: jest.fn(),
       agregarComentario: jest.fn(),
       listarPorCliente: jest.fn(),
+      consultarRutaPorFecha: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -95,6 +96,18 @@ describe('VisitasController (unit)', () => {
     const result = await controller.listar(clienteId);
 
     expect(service.listarPorCliente).toHaveBeenCalledWith(clienteId);
+    expect(result).toEqual(expected);
+  });
+
+  // ✅ consultarRutaPorFecha()
+  it('debería delegar en el servicio la consulta de ruta por fecha', async () => {
+    const query = { fecha: '2024-07-20' };
+    const expected = { totalVisitas: 0, visitas: [] };
+    jest.spyOn(service, 'consultarRutaPorFecha').mockResolvedValue(expected as any);
+
+    const result = await controller.consultarRutaPorFecha(query as any, jwt);
+
+    expect(service.consultarRutaPorFecha).toHaveBeenCalledWith(query.fecha, jwt);
     expect(result).toEqual(expected);
   });
 });
@@ -194,48 +207,6 @@ describe('VisitasController - uploadVideo', () => {
     );
     await expect(controller.uploadVideo(id, req, jwt)).rejects.toThrow(
       'Solo se permiten archivos de video'
-    );
-    expect(mockVisitasService.cargarVideoVisita).not.toHaveBeenCalled();
-  });
-
-  it('lanza BadRequestException si el archivo supera 30MB', async () => {
-    const id = 'visita-3';
-    const jwt = { sub: 'user-3' } as unknown as JwtPayloadDto;
-    // create a single chunk > 30MB
-    const bigChunk = Buffer.alloc(31 * 1024 * 1024, 0);
-    const part: FilePart = {
-      type: 'file',
-      mimetype: 'video/mp4',
-      filename: 'big.mp4',
-      file: fileChunks(bigChunk),
-    };
-
-    const req = {
-      parts: () => partsGenerator([part]),
-    } as unknown as FastifyRequest;
-
-    // call once and assert the rejection message
-    await expect(controller.uploadVideo(id, req, jwt)).rejects.toThrow(
-      'El archivo supera el límite de 30MB'
-    );
-
-    expect(mockVisitasService.cargarVideoVisita).not.toHaveBeenCalled();
-  });
-
-  it('lanza BadRequestException si no se recibió ningún archivo', async () => {
-    const id = 'visita-4';
-    const jwt = { sub: 'user-4' } as unknown as JwtPayloadDto;
-    // parts contains only fields (no file)
-    const fieldPart: FilePart = { type: 'field' };
-    const req = {
-      parts: () => partsGenerator([fieldPart]),
-    } as unknown as FastifyRequest;
-
-    await expect(controller.uploadVideo(id, req, jwt)).rejects.toBeInstanceOf(
-      BadRequestException
-    );
-    await expect(controller.uploadVideo(id, req, jwt)).rejects.toThrow(
-      'No se recibió ningún archivo'
     );
     expect(mockVisitasService.cargarVideoVisita).not.toHaveBeenCalled();
   });

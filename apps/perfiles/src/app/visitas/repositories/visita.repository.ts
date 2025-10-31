@@ -9,6 +9,7 @@ import {
   IVisitaRepository,
   VisitaCliente,
   EstadoVisita,
+  RutaVisitaProgramada,
 } from '@medi-supply/perfiles-dm';
 
 @Injectable()
@@ -87,6 +88,70 @@ export class VisitaRepository implements IVisitaRepository {
     } catch (error) {
       console.error('Error listando visitas:', error);
       throw new InternalServerErrorException('Error al listar visitas');
+    }
+  }
+  
+  async findRutaPorFecha(
+    vendedorId: string,
+    fechaInicio: Date,
+    fechaFin: Date
+  ): Promise<RutaVisitaProgramada[]> {
+    type RutaRow = {
+      id: string;
+      cliente_id: string;
+      fecha_visita: Date;
+      estado: EstadoVisita;
+      cliente_nombre: string;
+      latitud: number | null;
+      longitud: number | null;
+    };
+
+    try {
+      const registros = (await this.db('usuarios.visita_cliente as vc')
+        .select(
+          'vc.id',
+          'vc.cliente_id',
+          'vc.fecha_visita',
+          'vc.estado',
+          this.db.raw('c.nombre as cliente_nombre'),
+          this.db.raw('ST_Y(u.ubicacion::geometry) as latitud'),
+          this.db.raw('ST_X(u.ubicacion::geometry) as longitud')
+        )
+        .join('usuarios.cliente as c', 'c.id', 'vc.cliente_id')
+        .leftJoin('usuarios.usuario as u', 'u.id', 'c.id')
+        .where('vc.vendedor_id', vendedorId)
+        .andWhereBetween('vc.fecha_visita', [fechaInicio, fechaFin])
+        .orderBy('vc.fecha_visita', 'asc')) as RutaRow[];
+
+      return registros.map((row) => {
+        const lat =
+          row.latitud !== null && row.latitud !== undefined
+            ? Number(row.latitud)
+            : null;
+        const lng =
+          row.longitud !== null && row.longitud !== undefined
+            ? Number(row.longitud)
+            : null;
+
+        return {
+          visitaId: row.id,
+          clienteId: row.cliente_id,
+          fechaVisita: row.fecha_visita,
+          estado: row.estado,
+          nombreCliente: row.cliente_nombre,
+          direccion:
+            lat !== null && lng !== null
+              ? `Lat: ${lat}, Lng: ${lng}`
+              : null,
+          latitud: lat,
+          longitud: lng,
+        };
+      });
+    } catch (error) {
+      console.error('Error consultando la ruta de visitas:', error);
+      throw new InternalServerErrorException(
+        'Error al consultar la ruta de visitas'
+      );
     }
   }
 

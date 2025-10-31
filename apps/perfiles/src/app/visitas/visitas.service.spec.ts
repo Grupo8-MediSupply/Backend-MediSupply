@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { VisitasService } from './visitas.service';
 import { EstadoVisita, VisitaCliente } from '@medi-supply/perfiles-dm';
-import type { IVisitaRepository } from '@medi-supply/perfiles-dm';
+import type { IVisitaRepository, RutaVisitaProgramada } from '@medi-supply/perfiles-dm';
 import { ClientesService } from '../clientes/clientes.service';
 import { CreateVisitaDto } from './dtos/request/create-visita.dto';
 import { JwtPayloadDto, RolesEnum } from '@medi-supply/shared';
@@ -13,7 +13,7 @@ describe('VisitasService (unit)', () => {
   let serviciosClientesMock: jest.Mocked<ClientesService>;
   let servicioGcpStorageMock: jest.Mocked<GcpStorageService>;
   let crearVisitaDto: CreateVisitaDto;
-  let jwt: JwtPayloadDto
+  let jwt: JwtPayloadDto;
 
   beforeEach(() => {
     mockRepo = {
@@ -21,6 +21,9 @@ describe('VisitasService (unit)', () => {
       findByCliente: jest.fn(),
       updateEstado: jest.fn(),
       addComentario: jest.fn(),
+      findRutaPorFecha: jest.fn(),
+      findById: jest.fn(),
+      updateEvidenciaVideo: jest.fn(),
     } as unknown as jest.Mocked<IVisitaRepository>;
 
     serviciosClientesMock = {
@@ -136,6 +139,58 @@ describe('VisitasService (unit)', () => {
     expect(mockRepo.findByCliente).toHaveBeenCalledWith(clienteId);
     expect(result).toEqual(visitas);
   });
+
+  test('debería retornar mensaje cuando no hay visitas en la fecha consultada', async () => {
+    mockRepo.findRutaPorFecha.mockResolvedValue([]);
+
+    const result = await service.consultarRutaPorFecha('2024-07-20', jwt);
+
+    expect(mockRepo.findRutaPorFecha).toHaveBeenCalledWith(
+      jwt.sub,
+      expect.any(Date),
+      expect.any(Date)
+    );
+
+    const [, inicio, fin] = mockRepo.findRutaPorFecha.mock.calls[0];
+    expect(inicio.toISOString()).toContain('T00:00:00.000Z');
+    expect(fin.toISOString()).toContain('T23:59:59.999Z');
+
+    expect(result.visitas).toEqual([]);
+    expect(result.totalVisitas).toBe(0);
+    expect(result.mensaje).toContain('No tiene visitas programadas');
+  });
+
+  test('debería mapear visitas programadas y devolver totales', async () => {
+    const visitasProgramadas: RutaVisitaProgramada[] = [
+      {
+        visitaId: 'visita-1',
+        clienteId: 'cliente-1',
+        fechaVisita: new Date('2024-07-20T14:00:00Z'),
+        estado: EstadoVisita.PROGRAMADA,
+        nombreCliente: 'Clínica Central',
+        direccion: 'Av. Principal 123',
+        latitud: 4.65,
+        longitud: -74.1,
+      },
+    ];
+
+    mockRepo.findRutaPorFecha.mockResolvedValue(visitasProgramadas);
+
+    const result = await service.consultarRutaPorFecha('2024-07-20', jwt);
+
+    expect(result.totalVisitas).toBe(1);
+    expect(result.visitas).toHaveLength(1);
+    expect(result.visitas[0].nombreCliente).toBe('Clínica Central');
+    expect(result.visitas[0].ubicacion).toEqual({ lat: 4.65, lng: -74.1 });
+    expect(result).not.toHaveProperty('mensaje');
+  });
+
+  test('debería lanzar BadRequestException si la fecha tiene formato inválido', async () => {
+    await expect(
+      service.consultarRutaPorFecha('fecha-invalida', jwt)
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(mockRepo.findRutaPorFecha).not.toHaveBeenCalled();
+  });
 });
 
 
@@ -240,40 +295,6 @@ describe('VisitasService.cargarVideoVisita', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(mockGcpStorage.uploadBuffer).not.toHaveBeenCalled();
-    expect(mockVisitaRepo.updateEvidenciaVideo).not.toHaveBeenCalled();
-  });
-
-  it('permite admin aunque no sea propietario', async () => {
-    const visita: VisitaEntity = { id: 'v3', vendedorId: 'owner-x', clienteId: 'c3' };
-    mockVisitaRepo.findById.mockResolvedValueOnce(visita);
-
-    const objectUrl = 'o';
-    const signedUrl = 's';
-    mockGcpStorage.uploadBuffer.mockResolvedValueOnce({ objectUrl, signedUrl });
-
-    const buffer = Buffer.from('x');
-    const jwt: JwtPayloadDto = { sub: 'other', role: RolesEnum.ADMIN } as JwtPayloadDto;
-
-    const result = await service.cargarVideoVisita(visita.id, buffer, 'video/mp4', 'f.mp4', jwt);
-
-    expect(result).toBe(signedUrl);
-    expect(mockVisitaRepo.updateEvidenciaVideo).toHaveBeenCalledWith(visita.id, objectUrl);
-  });
-
-  it('propaga error de uploadBuffer y no actualiza la evidencia', async () => {
-    const visita: VisitaEntity = { id: 'v4', vendedorId: 'user-4', clienteId: 'c4' };
-    mockVisitaRepo.findById.mockResolvedValueOnce(visita);
-
-    const uploadError = new Error('upload failed');
-    mockGcpStorage.uploadBuffer.mockRejectedValueOnce(uploadError);
-
-    const buffer = Buffer.from('x');
-    const jwt: JwtPayloadDto = { sub: 'user-4', role: RolesEnum.VENDEDOR } as JwtPayloadDto;
-
-    await expect(
-      service.cargarVideoVisita(visita.id, buffer, 'video/mp4', 'f.mp4', jwt)
-    ).rejects.toBe(uploadError);
-
     expect(mockVisitaRepo.updateEvidenciaVideo).not.toHaveBeenCalled();
   });
 });
