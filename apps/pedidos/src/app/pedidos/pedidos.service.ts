@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { HttpManagerService } from '@medi-supply/shared';
 import {
   EstadoOrden,
+  FiltrosEntrega,
   type IOrdenesRepository,
   Orden,
   ProductoOrden,
@@ -45,5 +46,14 @@ export class PedidosService {
     });
     await this.ordenesRepository.actualizarOrden(orden.id, actualizada);
     await this.reducirStockProductos(orden.productos);
+  }
+
+  async ObtenerOrdenesParaEntregar(paisId: number, fechaInicio?: string, fechaFin?: string) {
+    const filtros: FiltrosEntrega = {
+      paisId,
+      fechaInicio,
+      fechaFin,
+    };
+    return this.ordenesRepository.obtenerOrdenesParaEntregar(filtros);
   }
 }

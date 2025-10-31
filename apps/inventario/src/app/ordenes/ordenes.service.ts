@@ -18,7 +18,9 @@ export class OrdenesService {
 
   async crearOrdenPorCliente(
     crearOrdenDto: CrearOrdenClienteDto,
-    clienteId: string
+    clienteId: string,
+    paisId: number,
+    vendedorId?: string
   ): Promise<OrdenCreadaDto> {
     const productosConInfo: ProductoOrden[] = await Promise.all(
       crearOrdenDto.productos.map(async (producto) => {
@@ -36,6 +38,7 @@ export class OrdenesService {
       cliente: clienteId,
       productos: productosConInfo,
       vendedor: crearOrdenDto.vendedor,
+      pais: paisId,
     });
 
     const ordenCreada = await this.ordenesRepository.crearOrden(nuevaOrden);

@@ -1,10 +1,113 @@
-import { IOrdenesRepository, Orden, ProductoOrden } from '@medi-supply/ordenes-dm';
+import {
+  BodegaOrigen,
+  FiltrosEntrega,
+  IOrdenesRepository,
+  Orden,
+  OrdenEntrega,
+  ProductoOrden,
+} from '@medi-supply/ordenes-dm';
 import { Inject } from '@nestjs/common';
 import { Knex } from 'knex';
 import { DomainException } from '@medi-supply/core';
 
 export class OrdenesRepository implements IOrdenesRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+
+  async obtenerOrdenesParaEntregar(
+    filtros: FiltrosEntrega
+  ): Promise<OrdenEntrega[]> {
+    // 1️⃣ Buscar las órdenes que cumplen los filtros
+    const ordenes = await this.db('pedidos.orden as o')
+      .join('usuarios.usuario as u', 'u.id', 'o.cliente_id')
+      .select(
+        'o.id as orden_id',
+        'o.cliente_id',
+        'o.estado',
+        this.db.raw(`
+      CASE 
+        WHEN u.ubicacion IS NOT NULL 
+        THEN ST_X(u.ubicacion::geometry)
+        ELSE NULL 
+      END as cliente_lng
+    `),
+        this.db.raw(`
+      CASE 
+        WHEN u.ubicacion IS NOT NULL 
+        THEN ST_Y(u.ubicacion::geometry)
+        ELSE NULL 
+      END as cliente_lat
+    `)
+      )
+      .where('o.estado', 'RECIBIDO')
+      .andWhere('o.pais_id', filtros.paisId)
+      .modify((qb) => {
+        if (filtros.fechaInicio && filtros.fechaFin) {
+          qb.andWhereBetween('o.created_at', [
+            filtros.fechaInicio,
+            filtros.fechaFin,
+          ]);
+        }
+      });
+
+    if (!ordenes.length) return [];
+
+    // 2️⃣ Obtener las bodegas relacionadas por orden
+    const ordenIds = ordenes.map((o) => o.orden_id);
+
+    const detalles = await this.db('pedidos.orden_detalle as od')
+      .join('logistica.bodega as b', 'b.id', 'od.bodega_id')
+      .select(
+        'od.orden_id',
+        'b.id as bodega_id',
+        this.db.raw(`
+      CASE 
+        WHEN b.ubicacion IS NOT NULL 
+          AND b.ubicacion != '' 
+        THEN ST_X(b.ubicacion_geografica::geometry)
+        ELSE NULL 
+      END as bodega_lng
+    `),
+        this.db.raw(`
+      CASE 
+        WHEN b.ubicacion IS NOT NULL 
+          AND b.ubicacion != '' 
+        THEN ST_Y(b.ubicacion_geografica::geometry)
+        ELSE NULL 
+      END as bodega_lat
+    `)
+      )
+      .whereIn('od.orden_id', ordenIds);
+
+    // 3️⃣ Agrupar bodegas por orden
+    const bodegasPorOrden = detalles.reduce<Record<string, BodegaOrigen[]>>(
+      (acc, det) => {
+        if (!acc[det.orden_id]) acc[det.orden_id] = [];
+        acc[det.orden_id].push({
+          id: det.bodega_id,
+          ubicacion: {
+            lat: det.bodega_lat,
+            lng: det.bodega_lng,
+          },
+        });
+        return acc;
+      },
+      {}
+    );
+
+    // 4️⃣ Armar estructura final del resultado
+    return ordenes.map((o) => ({
+      id: o.orden_id,
+      estado: o.estado,
+      cliente: {
+        id: o.cliente_id,
+        ubicacion: {
+          lat: o.cliente_lat,
+          lng: o.cliente_lng,
+        },
+      },
+      bodegasOrigen: bodegasPorOrden[o.orden_id] ?? [],
+    }));
+  }
 
   async actualizarOrden(id: string, cambios: Partial<Orden>): Promise<Orden> {
     return this.db.transaction(async (trx) => {
@@ -17,7 +120,6 @@ export class OrdenesRepository implements IOrdenesRepository {
       // 2️⃣ Construir los cambios sobre la orden
       const cambiosOrden: Record<string, any> = {};
       if (cambios.estado) cambiosOrden.estado = cambios.estado;
-
 
       let productosPlano: ProductoOrden[] = [];
 

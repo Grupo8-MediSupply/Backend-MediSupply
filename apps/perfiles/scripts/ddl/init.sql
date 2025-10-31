@@ -183,5 +183,18 @@ CREATE TRIGGER trg_visita_cliente_updated
     BEFORE UPDATE ON usuarios.visita_cliente
     FOR EACH ROW
     EXECUTE FUNCTION usuarios.set_updated_at();
+
+-- Asegúrate de que la extensión PostGIS esté habilitada
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+-- Alterar tabla para agregar la columna de ubicación
+ALTER TABLE usuarios.usuario
+ADD COLUMN ubicacion geography(Point, 4326);
+
+-- Opcional: agregar índice espacial para consultas eficientes por distancia
+CREATE INDEX IF NOT EXISTS idx_usuario_ubicacion
+ON usuarios.usuario
+USING GIST(ubicacion);
+
     
     

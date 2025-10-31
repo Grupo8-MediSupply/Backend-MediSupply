@@ -8,6 +8,8 @@ import {
   ProductoDetalle,
   ProductoBodega,
   DetalleRegional,
+  ProductoVariant,
+  BodegaConLotes,
 } from '@medi-supply/productos-dm';
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
@@ -15,7 +17,7 @@ import { ProductoOrden } from 'libs/domain/ordenes-dm/src';
 
 export class ProductoRepository implements IProductoRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
-  
+
   async findByLote(loteId: string): Promise<DetalleRegional | null> {
     const result = await this.db('logistica.lote as l')
       .select(
@@ -24,7 +26,11 @@ export class ProductoRepository implements IProductoRepository {
         'pr.proveedor_id as proveedor',
         'pr.precio'
       )
-      .join('productos.producto_regional as pr', 'pr.id', 'l.producto_regional_id')
+      .join(
+        'productos.producto_regional as pr',
+        'pr.id',
+        'l.producto_regional_id'
+      )
       .where('l.id', loteId)
       .first();
 
@@ -110,104 +116,93 @@ export class ProductoRepository implements IProductoRepository {
   }
 
   async findByPais(regionId: number): Promise<ProductoInfoRegion[]> {
-    const rows = await this.db('productos.producto_regional as pr')
+    const productos = await this.db('productos.producto_regional as pr')
       .join('productos.producto_global as pg', 'pg.id', 'pr.producto_global_id')
-      .leftJoin(
-        'productos.equipo_medico as eq',
-        'eq.producto_global_id',
-        'pg.id'
-      )
-      .leftJoin(
-        'productos.insumo_medico as ins',
-        'ins.producto_global_id',
-        'pg.id'
-      )
-      .leftJoin(
-        'productos.medicamento as med',
-        'med.producto_global_id',
-        'pg.id'
-      )
       .select(
-        'pg.id as productoGlobalId',
-        'pg.sku',
-        'pg.nombre',
-        'pg.descripcion',
-        'pg.tipo_producto',
         'pr.id as productoRegionalId',
         'pr.precio',
         'pr.proveedor_id',
         'pr.pais_id',
-        // Campos específicos de cada tipo:
-        'eq.marca',
-        'eq.modelo',
-        'eq.vida_util',
-        'eq.requiere_mantenimiento',
-        'ins.material',
-        'ins.esteril',
-        'ins.uso_unico',
-        'med.principio_activo',
-        'med.concentracion'
+        'pg.id as productoGlobalId',
+        'pg.sku',
+        'pg.nombre',
+        'pg.descripcion',
+        'pg.tipo_producto'
       )
       .where('pr.pais_id', regionId);
 
-    const mappedRows = rows.map((row) => {
-      let productoGlobal;
+    // 2️⃣ Separar por tipo
+    const medicamentosIds = productos
+      .filter((p) => p.tipo_producto === 'medicamento')
+      .map((p) => p.productoGlobalId);
+    const insumosIds = productos
+      .filter((p) => p.tipo_producto === 'insumo')
+      .map((p) => p.productoGlobalId);
+    const equiposIds = productos
+      .filter((p) => p.tipo_producto === 'equipo')
+      .map((p) => p.productoGlobalId);
 
-      const tipo = (row.tipo_producto as string)?.toLowerCase();
+    // 3️⃣ Traer detalles por tipo
+    const [medicamentos, insumos, equipos] = await Promise.all([
+      this.db('productos.medicamento').whereIn(
+        'producto_global_id',
+        medicamentosIds
+      ),
+      this.db('productos.insumo_medico').whereIn(
+        'producto_global_id',
+        insumosIds
+      ),
+      this.db('productos.equipo_medico').whereIn(
+        'producto_global_id',
+        equiposIds
+      ),
+    ]);
+
+    // 4️⃣ Mapear por productoGlobalId
+    const medicamentosMap = Object.fromEntries(
+      medicamentos.map((m) => [m.producto_global_id, m])
+    );
+    const insumosMap = Object.fromEntries(
+      insumos.map((i) => [i.producto_global_id, i])
+    );
+    const equiposMap = Object.fromEntries(
+      equipos.map((e) => [e.producto_global_id, e])
+    );
+
+    // 5️⃣ Construir objetos finales
+    const mappedRows = productos.map((row) => {
+      const tipo = (row.tipo_producto as string).toLowerCase() as TipoProducto;
+      let productoGlobal: ProductoVariant | null = null;
+
       switch (tipo) {
-        case TipoProducto.MEDICAMENTO:
-          productoGlobal = new ProductoMedicamento({
-            id: row.productoGlobalId,
-            sku: row.sku,
-            nombre: row.nombre,
-            descripcion: row.descripcion,
-            tipoProducto: row.tipo_producto,
-            principioActivo: row.principio_activo,
-            concentracion: row.concentracion,
-          });
+        case TipoProducto.MEDICAMENTO: {
+          const med = medicamentosMap[row.productoGlobalId];
+          productoGlobal = new ProductoMedicamento({ ...row, ...med });
           break;
-
-        case TipoProducto.INSUMO:
-          productoGlobal = new ProductoInsumoMedico({
-            id: row.productoGlobalId,
-            sku: row.sku,
-            nombre: row.nombre,
-            descripcion: row.descripcion,
-            tipoProducto: row.tipo_producto,
-            material: row.material,
-            esteril: row.esteril,
-            usoUnico: row.uso_unico,
-          });
+        }
+        case TipoProducto.INSUMO: {
+          const ins = insumosMap[row.productoGlobalId];
+          productoGlobal = new ProductoInsumoMedico({ ...row, ...ins });
           break;
-
-        case TipoProducto.EQUIPO:
-          productoGlobal = new ProductoEquipoMedico({
-            id: row.productoGlobalId,
-            sku: row.sku,
-            nombre: row.nombre,
-            descripcion: row.descripcion,
-            tipoProducto: row.tipo_producto,
-            marca: row.marca,
-            modelo: row.modelo,
-            vidaUtil: row.vida_util,
-            requiereMantenimiento: row.requiere_mantenimiento,
-          });
+        }
+        case TipoProducto.EQUIPO: {
+          const eq = equiposMap[row.productoGlobalId];
+          productoGlobal = new ProductoEquipoMedico({ ...row, ...eq });
           break;
-
+        }
         default:
+          throw new Error(`Tipo de producto desconocido: ${row.tipo_producto}`);
       }
 
-      const detalleRegional = {
-        id: row.productoRegionalId,
-        pais: row.pais_id,
-        proveedor: row.proveedor_id,
-        precio: Number(row.precio),
-        regulaciones: [], // si aún no las tienes, lo dejas vacío
-      };
-
       return {
-        productoGlobal,
-        detalleRegional,
+        productoGlobal: productoGlobal!,
+        detalleRegional: {
+          id: row.productoRegionalId,
+          pais: row.pais_id,
+          proveedor: row.proveedor_id,
+          precio: Number(row.precio),
+          regulaciones: [],
+        },
       } as ProductoInfoRegion;
     });
 
@@ -325,15 +320,106 @@ export class ProductoRepository implements IProductoRepository {
       .andWhere('pr.pais_id', paisId)
       .first();
 
-    if (!producto) {
-      return null;
+    if (!producto) return null;
+
+    let detalleProducto: ProductoVariant | null = null;
+
+    const tipoProducto = (
+      producto.tipo as string
+    ).toLowerCase() as TipoProducto;
+    switch (tipoProducto) {
+      case TipoProducto.INSUMO: {
+        const row = await this.db('productos.insumo_medico')
+          .where('producto_global_id', producto.productoGlobalId)
+          .first();
+        if (row) {
+          detalleProducto = new ProductoInsumoMedico({
+            ...row,
+            id: producto.productoRegionalId,
+            sku: producto.sku,
+            nombre: producto.nombre,
+            descripcion: producto.descripcion,
+          });
+        }
+        break;
+      }
+
+      case TipoProducto.MEDICAMENTO: {
+        const row = await this.db('productos.medicamento')
+          .where('producto_global_id', producto.productoGlobalId)
+          .first();
+        if (row) {
+          detalleProducto = new ProductoMedicamento({
+            ...row,
+            id: producto.productoRegionalId,
+            sku: producto.sku,
+            nombre: producto.nombre,
+            descripcion: producto.descripcion,
+          });
+        }
+        break;
+      }
+
+      case TipoProducto.EQUIPO: {
+        const row = await this.db('productos.equipo_medico')
+          .where('producto_global_id', producto.productoGlobalId)
+          .first();
+        if (row) {
+          detalleProducto = new ProductoEquipoMedico({
+            ...row,
+            id: producto.productoRegionalId,
+            sku: producto.sku,
+            nombre: producto.nombre,
+            descripcion: producto.descripcion,
+          });
+        }
+        break;
+      }
     }
 
+    const lotes = await this.db('logistica.lote')
+      .where('producto_regional_id', producto.productoRegionalId)
+      .select('id');
+
+    const loteIds = lotes.map((l) => l.id);
+
+    const inventarios = await this.db('logistica.inventario as inv')
+      .join('logistica.bodega as b', 'b.id', 'inv.bodega_id')
+      .whereIn('inv.lote_id', loteIds)
+      .select(
+        'b.id as bodegaId',
+        'b.nombre as bodegaNombre',
+        'inv.lote_id as loteId',
+        'inv.cantidad_disponible as cantidad'
+      );
+
+    const bodegasMap: Record<
+      number,
+      {
+        bodegaId: number;
+        bodegaNombre: string;
+        lotes: { loteId: number; cantidad: number }[];
+      }
+    > = {};
+
+    inventarios.forEach((item) => {
+      if (!bodegasMap[item.bodegaId]) {
+        bodegasMap[item.bodegaId] = {
+          bodegaId: item.bodegaId,
+          bodegaNombre: item.bodegaNombre,
+          lotes: [],
+        };
+      }
+      bodegasMap[item.bodegaId].lotes.push({
+        loteId: item.loteId,
+        cantidad: item.cantidad,
+      });
+    });
+
+    const bodegas: BodegaConLotes[] = Object.values(bodegasMap);
+
     const detalle: ProductoDetalle = {
-      id: producto.productoRegionalId,
-      sku: producto.sku,
-      nombre: producto.nombre,
-      descripcion: producto.descripcion,
+      producto_info: detalleProducto!,
       tipo: producto.tipo,
       precio: Number(producto.precio),
       proveedor: {
@@ -342,6 +428,7 @@ export class ProductoRepository implements IProductoRepository {
         pais: producto.paisNombre,
       },
       productoPaisId: producto.productoPaisId,
+      bodegas,
     };
 
     return detalle;
@@ -373,7 +460,10 @@ export class ProductoRepository implements IProductoRepository {
     }
   }
 
-  async update(productoRegionalId: string, producto: ProductoInfoRegion): Promise<ProductoInfoRegion> {
+  async update(
+    productoRegionalId: string,
+    producto: ProductoInfoRegion
+  ): Promise<ProductoInfoRegion> {
     try {
       return await this.db.transaction(async (trx) => {
         const registro = await trx('productos.producto_regional')
@@ -383,7 +473,7 @@ export class ProductoRepository implements IProductoRepository {
 
         if (!registro) {
           throw new InternalServerErrorException(
-            'Producto no encontrado para actualizar.',
+            'Producto no encontrado para actualizar.'
           );
         }
 
@@ -450,7 +540,7 @@ export class ProductoRepository implements IProductoRepository {
             (regulacionId) => ({
               producto_id: productoRegionalId,
               regulacion_id: regulacionId,
-            }),
+            })
           );
 
           await trx('productos.producto_regulacion').insert(rows);
@@ -467,9 +557,8 @@ export class ProductoRepository implements IProductoRepository {
     } catch (error) {
       console.error('❌ Error al actualizar producto:', error);
       throw new InternalServerErrorException(
-        'Error al actualizar la información del producto.',
+        'Error al actualizar la información del producto.'
       );
     }
   }
-  
 }
