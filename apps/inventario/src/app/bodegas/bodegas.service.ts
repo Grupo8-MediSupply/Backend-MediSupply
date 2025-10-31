@@ -3,6 +3,7 @@ import type { IBodegaRepository, Bodega } from '@medi-supply/bodegas-dm';
 import { BodegaResponseDto } from './dtos/response/bodega.response.dto';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 import { ProductoService } from '../productos/producto.service';
+import { Lote } from '@medi-supply/bodegas-dm';
 
 
 @Injectable()
@@ -77,6 +78,10 @@ export class BodegasService {
       bodega.createdAt,
       bodega.updatedAt
     );
+  }
+
+  async findLoteEnBodega(loteId: string, bodegaId: string): Promise<Lote | null> {
+    return this.repo.findLoteEnBodega(loteId, bodegaId);
   }
 
 }

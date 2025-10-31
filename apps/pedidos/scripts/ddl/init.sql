@@ -108,3 +108,8 @@ CREATE TRIGGER trg_orden_updated
     BEFORE UPDATE ON pedidos.orden
     FOR EACH ROW
     EXECUTE FUNCTION pedidos.set_updated_at();
+
+
+ALTER TABLE pedidos.orden
+ADD COLUMN pais_id INT REFERENCES geografia.pais(id);
+

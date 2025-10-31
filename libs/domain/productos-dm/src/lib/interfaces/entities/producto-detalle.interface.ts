@@ -1,12 +1,12 @@
+import { ProductoVariant } from "@medi-supply/productos-dm";
+
 export class ProductoDetalle {
-  id!: number;
-  sku!: string;
-  nombre!: string;
-  descripcion?: string;
+  producto_info!: ProductoVariant;
   tipo!: string;
   precio!: number;
   proveedor!: ProveedorDetailDto;
   productoPaisId!: number;
+  bodegas!: BodegaConLotes[];
 }
 
 export interface ProveedorDetailDto{
@@ -24,4 +24,15 @@ export interface ProductoBodega{
   productoRegionalId: string;
   numeroLote: string;
   loteId: string;
+}
+
+export interface LoteBodega {
+  loteId: number;
+  cantidad: number;
+}
+
+export interface BodegaConLotes {
+  bodegaId: number;
+  bodegaNombre: string;
+  lotes: LoteBodega[];
 }

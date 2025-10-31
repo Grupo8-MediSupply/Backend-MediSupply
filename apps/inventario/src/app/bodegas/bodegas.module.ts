@@ -14,5 +14,6 @@ import { ProductoModule } from '../productos/producto.module';
     },
   ],
   imports: [ProductoModule],
+  exports: [BodegasService],
 })
 export class BodegasModule {}

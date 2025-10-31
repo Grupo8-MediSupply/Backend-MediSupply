@@ -1,4 +1,4 @@
-import { BaseEntity } from '@medi-supply/core';
+import { BaseEntity, Ubicacion } from '@medi-supply/core';
 
 
 export class Orden extends BaseEntity<string>  {
@@ -6,6 +6,7 @@ export class Orden extends BaseEntity<string>  {
     readonly cliente: string;
     readonly vendedor?: string;
     readonly estado?: string = 'PENDIENTE';
+    readonly pais?: number;
 
     constructor(props: {
         id?: string;
@@ -13,6 +14,7 @@ export class Orden extends BaseEntity<string>  {
         cliente: string;
         vendedor?: string;
         estado?: string;
+        pais?: number;
     }) {
         super({
             id: props.id ?? crypto.randomUUID(),
@@ -21,6 +23,7 @@ export class Orden extends BaseEntity<string>  {
         this.cliente = props.cliente;
         this.vendedor = props.vendedor;
         this.estado = props.estado;
+        this.pais = props.pais;
     }
 
 }
@@ -31,4 +34,21 @@ export interface ProductoOrden{
     bodega: string;
     precioUnitario?: number;
     productoRegional?: string;
+}
+
+export interface OrdenEntrega {
+    id: string;
+    cliente: ClienteEntrega;
+    estado?: string;
+    bodegasOrigen: BodegaOrigen[];
+}
+
+export interface BodegaOrigen{
+    id: string;
+    ubicacion: Ubicacion;
+}
+
+export interface ClienteEntrega{
+    id: string;
+    ubicacion: Ubicacion;
 }

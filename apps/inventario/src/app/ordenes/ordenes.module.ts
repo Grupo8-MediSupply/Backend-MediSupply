@@ -3,6 +3,7 @@ import { OrdenesController } from './ordenes.controller';
 import { OrdenesService } from './ordenes.service';
 import { ProductoModule } from '../productos/producto.module';
 import { OrdenesRepository } from './repositories/Ordenes.repository';
+import { BodegasModule } from '../bodegas/bodegas.module';
 
 @Module({
   controllers: [OrdenesController],
@@ -12,6 +13,6 @@ import { OrdenesRepository } from './repositories/Ordenes.repository';
       useClass: OrdenesRepository,
     }
   ],
-  imports: [ProductoModule],
+  imports: [ProductoModule,BodegasModule],
 })
 export class OrdenesModule {}
