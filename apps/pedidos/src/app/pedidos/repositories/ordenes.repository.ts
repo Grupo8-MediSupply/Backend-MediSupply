@@ -5,13 +5,55 @@ import {
   Orden,
   OrdenEntrega,
   ProductoOrden,
+  Vehiculo,
 } from '@medi-supply/ordenes-dm';
 import { Inject } from '@nestjs/common';
 import { Knex } from 'knex';
-import { DomainException } from '@medi-supply/core';
+import { DomainException, Ubicacion } from '@medi-supply/core';
 
 export class OrdenesRepository implements IOrdenesRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+
+  async obtenerVehiculoMasCercano(
+  bodegas: Ubicacion[]
+): Promise<Vehiculo | null> {
+  if (!bodegas.length) return null;
+
+  const values = bodegas
+    .map(
+      (b) =>
+        `(ST_SetSRID(ST_MakePoint(${b.lng}, ${b.lat}), 4326)::geography)`
+    )
+    .join(',');
+
+  const query = `
+    SELECT
+      v.id,
+      v.marca,
+      v.modelo,
+      v.placa,
+      AVG(ST_Distance(v.ubicacion::geography, b.ubicacion)) AS distancia_promedio
+    FROM logistica.vehiculo v
+    CROSS JOIN (VALUES ${values}) AS b(ubicacion)
+    WHERE v.activo = true
+    GROUP BY v.id, v.marca, v.modelo, v.placa
+    ORDER BY distancia_promedio ASC
+    LIMIT 1;
+  `;
+
+  const result = await this.db.raw(query);
+  const vehiculo = result.rows?.[0];
+
+  if (!vehiculo) return null;
+
+  return new Vehiculo({
+    id: vehiculo.id,
+    placa: vehiculo.placa,
+    modelo: vehiculo.modelo,
+    pais: 0,
+    ubicacionGeografica: { lat: 0, lng: 0 },
+  });
+}
 
   async obtenerOrdenesParaEntregar(
     filtros: FiltrosEntrega
