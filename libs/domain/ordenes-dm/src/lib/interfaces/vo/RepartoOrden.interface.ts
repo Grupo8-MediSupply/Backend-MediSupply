@@ -19,9 +19,10 @@ export interface RutaVehiculo {
 
 export interface RutaGenerada {
   vehiculoId: string;
+  rutaId?: string;
   ordenesIds: string[];
   distancia: number;
-  duracion: number;
+  duracion: number | Long | string;
   polilinea: string;
   legs: any[];
 }

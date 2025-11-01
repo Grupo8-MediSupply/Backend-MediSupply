@@ -5,6 +5,7 @@ import {
   Orden,
   OrdenEntrega,
   ProductoOrden,
+  RutaGenerada,
   RutaVehiculo,
   Vehiculo,
 } from '@medi-supply/ordenes-dm';
@@ -14,6 +15,27 @@ import { DomainException, Ubicacion } from '@medi-supply/core';
 
 export class OrdenesRepository implements IOrdenesRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+  async buscarRutaPorOrdenId(ordenId: string): Promise<RutaGenerada | null> {
+    const consulta = await this.db('logistica.rutas as r')
+      .join('pedidos.orden as o', 'o.ruta_id', 'r.id')
+      .select('r.ruta_json', 'r.id')
+      .where('o.id', ordenId)
+      .first();
+
+    if (!consulta.ruta_json) {
+      return null;
+    }
+
+    return {
+      vehiculoId: consulta.ruta_json.vehiculoId,
+      ordenesIds: consulta.ruta_json.ordenesIds,
+      distancia: consulta.ruta_json.distancia,
+      duracion: consulta.ruta_json.duracion,
+      polilinea: consulta.ruta_json.polilinea,
+      legs: consulta.ruta_json.legs,
+      rutaId: consulta.id,
+    };
+  }
 
   async obtenerVehiculoMasCercano(
     bodegas: Ubicacion[]
@@ -87,6 +109,7 @@ export class OrdenesRepository implements IOrdenesRepository {
       )
       .where('o.estado', 'RECIBIDO')
       .andWhere('o.pais_id', filtros.paisId)
+      .andWhere('o.ruta_id', null)
       .modify((qb) => {
         if (filtros.fechaInicio && filtros.fechaFin) {
           qb.andWhereBetween('o.created_at', [
@@ -168,6 +191,7 @@ export class OrdenesRepository implements IOrdenesRepository {
       // 2️⃣ Construir los cambios sobre la orden
       const cambiosOrden: Record<string, any> = {};
       if (cambios.estado) cambiosOrden.estado = cambios.estado;
+      if (cambios.ruta_id) cambiosOrden.ruta_id = cambios.ruta_id;
 
       let productosPlano: ProductoOrden[] = [];
 
@@ -223,7 +247,7 @@ export class OrdenesRepository implements IOrdenesRepository {
         vendedor: actualizada.vendedor_id,
         estado: actualizada.estado,
         productos: actualizada.productos_snapshot ?? '[]',
-        vehiculoAsignado: actualizada.vehiculo_asignado ?? undefined,
+        ruta_id: actualizada.ruta_id ?? undefined,
       });
     });
   }
@@ -236,23 +260,31 @@ export class OrdenesRepository implements IOrdenesRepository {
     throw new Error('Method not implemented.');
   }
 
-  async guardarRutaDeReparto(vehiculoId:string, ordenId:string, ruta:RutaVehiculo): Promise<void> {
-    await this.db('logistica.rutas').insert({
+  async guardarRutaDeReparto(vehiculoId:string, ruta:RutaGenerada): Promise<string> {
+    const [id] = await this.db('logistica.rutas').insert({
       vehiculo_id: vehiculoId,
-      orden_id: ordenId,
       ruta_json: JSON.stringify(ruta),
-    });
+    }).returning('id');
+    return id.id;
   }
 
-  async buscarRutaDeRepartoPorOrdenYVehiculo(ordenId:string, vehiculoId:string): Promise<RutaVehiculo | null> {
-    const resultado = await this.db('logistica.rutas')
-      .where({ orden_id: ordenId, vehiculo_id: vehiculoId })
+  async buscarOrdenPorId(ordenId:string): Promise<Orden | null> {
+    const resultado = await this.db('pedidos.orden')
+      .where({ id: ordenId })
       .first();
 
     if (!resultado) {
       return null;
     }
 
-    return JSON.parse(resultado.ruta_json);
+    return new Orden({
+      id: resultado.id,
+      cliente: resultado.cliente_id,
+      vendedor: resultado.vendedor_id,
+      estado: resultado.estado,
+      productos: resultado.productos_snapshot ?? '[]',
+      ruta_id: resultado.ruta_id ?? undefined,
+    });
   }
+
 }
