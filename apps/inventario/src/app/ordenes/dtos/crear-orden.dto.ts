@@ -26,16 +26,13 @@ export class ProductoOrdenDto {
 
 }
 
-export class CrearOrdenClienteDto {
+export class CrearOrdenDto {
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => ProductoOrdenDto)
   productos!: ProductoOrdenDto[];
 
-  @IsOptional()
-  @IsUUID()
-  vendedor?: string;
 }
 
 export class OrdenCreadaDto {

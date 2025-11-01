@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CrearOrdenClienteDto, OrdenCreadaDto } from './dtos/crear-orden.dto';
+import { CrearOrdenDto, OrdenCreadaDto } from './dtos/crear-orden.dto';
 import {
   type IOrdenesRepository,
   Orden,
@@ -18,8 +18,8 @@ export class OrdenesService {
     private readonly bodegasService: BodegasService,
   ) {}
 
-  async crearOrdenPorCliente(
-    crearOrdenDto: CrearOrdenClienteDto,
+  async crearOrden(
+    crearOrdenDto: CrearOrdenDto,
     clienteId: string,
     paisId: number,
     vendedorId?: string
@@ -48,7 +48,7 @@ export class OrdenesService {
     const nuevaOrden = new Orden({
       cliente: clienteId,
       productos: productosConInfo,
-      vendedor: crearOrdenDto.vendedor,
+      vendedor: vendedorId,
       pais: paisId,
     });
 

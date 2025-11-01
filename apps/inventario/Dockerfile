@@ -12,6 +12,8 @@ COPY tsconfig*.json ./
 RUN npm ci
 COPY . .
 
+# 👇 Sincronizamos Nx antes del build (esto corrige el error)
+RUN npx nx sync
 # Construir la app
 RUN npx nx build $APP_NAME --prod
 
