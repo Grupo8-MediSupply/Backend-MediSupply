@@ -1,14 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdenesController } from './ordenes.controller';
 import { OrdenesService } from './ordenes.service';
+import { CrearOrdenDto } from './dtos/crear-orden.dto';
+import { type JwtPayloadDto } from '@medi-supply/shared';
 
 describe('OrdenesController', () => {
   let controller: OrdenesController;
-  let ordenesServiceMock: { crearOrdenPorCliente: jest.Mock };
+  let ordenesServiceMock: { crearOrden: jest.Mock };
 
   beforeEach(async () => {
     ordenesServiceMock = {
-      crearOrdenPorCliente: jest.fn(),
+      crearOrden: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -34,15 +36,15 @@ describe('OrdenesController', () => {
 
     controller.crearOrden(dto, jwt);
 
-    expect(ordenesServiceMock.crearOrdenPorCliente).toHaveBeenCalledTimes(1);
-    const callArgs = ordenesServiceMock.crearOrdenPorCliente.mock.calls[0];
+    expect(ordenesServiceMock.crearOrden).toHaveBeenCalledTimes(1);
+    const callArgs = ordenesServiceMock.crearOrden.mock.calls[0];
     expect(callArgs[0]).toBe(dto);
     expect(callArgs[1]).toBe('user-123');
   });
 
   it('crearOrdenVendedor (porVendedor/:clienteId) llama a crearOrden con dto, clienteId, jwt.pais y jwt.sub', async () => {
     const clienteId = 'cliente-999';
-    const dto = { productos: [] } as CrearOrdenVendedorDto;
+    const dto = { productos: [] } as CrearOrdenDto;
     const jwt = { sub: 'vendedor-abc', pais: 22 } as unknown as JwtPayloadDto;
 
     await controller.crearOrdenVendedor(clienteId, dto, jwt);

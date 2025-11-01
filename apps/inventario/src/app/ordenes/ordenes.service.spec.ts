@@ -63,10 +63,11 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
 
     mockProductoService.findByLote.mockResolvedValueOnce({ id: 'regional-1', precio: 500 });
 
-    const persisted: OrdenPersisted = { id: 'order-1', estado: 'CREADA', cliente: clienteId };
+    const persisted: OrdenPersisted = { id: 'order-1', estado: 'CREADA', cliente: clienteId, vendedor: 'v-1' };
     mockRepository.crearOrden.mockImplementationOnce(async () => persisted);
 
-    const result = await service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais);
+    // pass vendedorId explicitly (service uses the vendedorId parameter)
+    const result = await service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais, crearDto.vendedor);
 
     expect(mockBodegasService.findLoteEnBodega).toHaveBeenCalledWith('L1', 'B1');
     expect(mockProductoService.findByLote).toHaveBeenCalledTimes(1);
@@ -100,7 +101,7 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     const persisted: OrdenPersisted = { id: 'order-2', estado: 'PENDIENTE' };
     mockRepository.crearOrden.mockResolvedValueOnce(persisted);
 
-    const result = await service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais);
+    const result = await service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais, crearDto.vendedor);
 
     const calledWith = mockRepository.crearOrden.mock.calls[0][0] as { productos: Array<Record<string, unknown>> };
     expect(calledWith.productos[0].productoRegional).toBeUndefined();
@@ -127,7 +128,7 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     const persisted: OrdenPersisted = { id: 'order-3', estado: 'CREADA' };
     mockRepository.crearOrden.mockResolvedValueOnce(persisted);
 
-    await service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais);
+    await service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais, crearDto.vendedor);
 
     expect(mockBodegasService.findLoteEnBodega).toHaveBeenCalledTimes(2);
     expect(mockProductoService.findByLote).toHaveBeenCalledTimes(2);
@@ -152,7 +153,8 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     const error = new Error('DB failure');
     mockRepository.crearOrden.mockRejectedValueOnce(error);
 
-    await expect(service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais)).rejects.toThrow('DB failure');
+    // pass undefined vendedor explicitly
+    await expect(service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais, undefined)).rejects.toThrow('DB failure');
 
     expect(mockRepository.crearOrden).toHaveBeenCalledTimes(1);
     expect(mockPubSub.publish).not.toHaveBeenCalled();
@@ -168,7 +170,7 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     const persisted: OrdenPersisted = { id: 'order-empty', estado: 'CREADA' };
     mockRepository.crearOrden.mockResolvedValueOnce(persisted);
 
-    const result = await service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais);
+    const result = await service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais, crearDto.vendedor);
 
     expect(mockBodegasService.findLoteEnBodega).not.toHaveBeenCalled();
     expect(mockProductoService.findByLote).not.toHaveBeenCalled();
@@ -190,7 +192,7 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     // Simulate lote missing
     mockBodegasService.findLoteEnBodega.mockResolvedValueOnce(null);
 
-    await expect(service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais)).rejects.toThrow(
+    await expect(service.crearOrden(crearDto as unknown as CrearOrdenDto, clienteId, jwt.pais, undefined)).rejects.toThrow(
       `El lote MISS no existe en la bodega B-MISS.`
     );
 
