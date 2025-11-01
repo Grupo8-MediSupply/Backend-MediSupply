@@ -218,7 +218,6 @@ export class OrdenesRepository implements IOrdenesRepository {
         // const nuevoSnapshot = [...snapshotExistente, ...productosPlano];
 
         cambiosOrden.total = total;
-        cambiosOrden.vehiculo_asignado = cambios.vehiculoAsignado ?? null;
         // cambiosOrden.productos_snapshot = JSON.stringify(nuevoSnapshot);
 
         // Insertar los nuevos productos
