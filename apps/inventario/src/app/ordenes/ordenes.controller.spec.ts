@@ -39,4 +39,19 @@ describe('OrdenesController', () => {
     expect(callArgs[0]).toBe(dto);
     expect(callArgs[1]).toBe('user-123');
   });
+
+  it('crearOrdenVendedor (porVendedor/:clienteId) llama a crearOrden con dto, clienteId, jwt.pais y jwt.sub', async () => {
+    const clienteId = 'cliente-999';
+    const dto = { productos: [] } as CrearOrdenVendedorDto;
+    const jwt = { sub: 'vendedor-abc', pais: 22 } as unknown as JwtPayloadDto;
+
+    await controller.crearOrdenVendedor(clienteId, dto, jwt);
+
+    expect(ordenesServiceMock.crearOrden).toHaveBeenCalledTimes(1);
+    const callArgs = ordenesServiceMock.crearOrden.mock.calls[0];
+    expect(callArgs[0]).toBe(dto);
+    expect(callArgs[1]).toBe(clienteId);    // clienteId from route param
+    expect(callArgs[2]).toBe(jwt.pais);     // paisId from jwt
+    expect(callArgs[3]).toBe(jwt.sub);      // vendedorId from jwt.sub
+  });
 });
