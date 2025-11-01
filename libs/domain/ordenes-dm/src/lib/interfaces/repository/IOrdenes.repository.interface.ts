@@ -10,6 +10,7 @@ export interface IOrdenesRepository {
   obtenerOrdenesParaEntregar(filtros: FiltrosEntrega): Promise<OrdenEntrega[]>;
   obtenerVehiculoMasCercano(bodegas:Ubicacion[]): Promise<Vehiculo | null>;
   guardarRutaDeReparto(vehiculoId:string, ordenId:string, ruta:RutaVehiculo): Promise<void>;
+  buscarRutaDeRepartoPorOrdenYVehiculo(ordenId:string, vehiculoId:string): Promise<RutaVehiculo | null>;
 }
 
 export interface FiltrosEntrega {

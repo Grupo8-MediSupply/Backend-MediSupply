@@ -97,6 +97,7 @@ export class PedidosService {
     const resultados = [];
 
     for (const ruta of rutas) {
+      
       const r = await this.rutasService.generarRuta(
         ruta.origen,
         ruta.bodegas,

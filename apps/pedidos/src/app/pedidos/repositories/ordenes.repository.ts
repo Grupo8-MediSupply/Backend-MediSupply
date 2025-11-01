@@ -243,4 +243,16 @@ export class OrdenesRepository implements IOrdenesRepository {
       ruta_json: JSON.stringify(ruta),
     });
   }
+
+  async buscarRutaDeRepartoPorOrdenYVehiculo(ordenId:string, vehiculoId:string): Promise<RutaVehiculo | null> {
+    const resultado = await this.db('logistica.rutas')
+      .where({ orden_id: ordenId, vehiculo_id: vehiculoId })
+      .first();
+
+    if (!resultado) {
+      return null;
+    }
+
+    return JSON.parse(resultado.ruta_json);
+  }
 }
