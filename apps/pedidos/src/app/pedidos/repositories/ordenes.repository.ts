@@ -15,23 +15,25 @@ export class OrdenesRepository implements IOrdenesRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
 
   async obtenerVehiculoMasCercano(
-  bodegas: Ubicacion[]
-): Promise<Vehiculo | null> {
-  if (!bodegas.length) return null;
+    bodegas: Ubicacion[]
+  ): Promise<Vehiculo | null> {
+    if (!bodegas.length) return null;
 
-  const values = bodegas
-    .map(
-      (b) =>
-        `(ST_SetSRID(ST_MakePoint(${b.lng}, ${b.lat}), 4326)::geography)`
-    )
-    .join(',');
+    const values = bodegas
+      .map(
+        (b) => `(ST_SetSRID(ST_MakePoint(${b.lng}, ${b.lat}), 4326)::geography)`
+      )
+      .join(',');
 
-  const query = `
+    const query = `
     SELECT
       v.id,
       v.marca,
       v.modelo,
       v.placa,
+      v.pais_id,
+      ST_Y(v.ubicacion::geometry) AS lat,
+      ST_X(v.ubicacion::geometry) AS lng,
       AVG(ST_Distance(v.ubicacion::geography, b.ubicacion)) AS distancia_promedio
     FROM logistica.vehiculo v
     CROSS JOIN (VALUES ${values}) AS b(ubicacion)
@@ -41,19 +43,19 @@ export class OrdenesRepository implements IOrdenesRepository {
     LIMIT 1;
   `;
 
-  const result = await this.db.raw(query);
-  const vehiculo = result.rows?.[0];
+    const result = await this.db.raw(query);
+    const vehiculo = result.rows?.[0];
 
-  if (!vehiculo) return null;
+    if (!vehiculo) return null;
 
-  return new Vehiculo({
-    id: vehiculo.id,
-    placa: vehiculo.placa,
-    modelo: vehiculo.modelo,
-    pais: 0,
-    ubicacionGeografica: { lat: 0, lng: 0 },
-  });
-}
+    return new Vehiculo({
+      id: vehiculo.id,
+      placa: vehiculo.placa,
+      modelo: vehiculo.modelo,
+      pais: vehiculo.pais_id,
+      ubicacionGeografica: { lat: vehiculo.lat, lng: vehiculo.lng },
+    });
+  }
 
   async obtenerOrdenesParaEntregar(
     filtros: FiltrosEntrega
@@ -61,9 +63,11 @@ export class OrdenesRepository implements IOrdenesRepository {
     // 1️⃣ Buscar las órdenes que cumplen los filtros
     const ordenes = await this.db('pedidos.orden as o')
       .join('usuarios.usuario as u', 'u.id', 'o.cliente_id')
+      .join('usuarios.cliente as c', 'c.id', 'u.id')
       .select(
         'o.id as orden_id',
         'o.cliente_id',
+        'c.nombre',
         'o.estado',
         this.db.raw(`
       CASE 
@@ -146,6 +150,7 @@ export class OrdenesRepository implements IOrdenesRepository {
           lat: o.cliente_lat,
           lng: o.cliente_lng,
         },
+        nombre: o.nombre,
       },
       bodegasOrigen: bodegasPorOrden[o.orden_id] ?? [],
     }));
@@ -188,6 +193,7 @@ export class OrdenesRepository implements IOrdenesRepository {
         // const nuevoSnapshot = [...snapshotExistente, ...productosPlano];
 
         cambiosOrden.total = total;
+        cambiosOrden.vehiculo_asignado = cambios.vehiculoAsignado ?? null;
         // cambiosOrden.productos_snapshot = JSON.stringify(nuevoSnapshot);
 
         // Insertar los nuevos productos
@@ -216,6 +222,7 @@ export class OrdenesRepository implements IOrdenesRepository {
         vendedor: actualizada.vendedor_id,
         estado: actualizada.estado,
         productos: actualizada.productos_snapshot ?? '[]',
+        vehiculoAsignado: actualizada.vehiculo_asignado ?? undefined,
       });
     });
   }

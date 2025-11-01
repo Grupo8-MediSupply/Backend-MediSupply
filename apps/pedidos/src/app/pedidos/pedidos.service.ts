@@ -6,8 +6,11 @@ import {
   type IOrdenesRepository,
   Orden,
   ProductoOrden,
+  RutasService,
+  RutaVehiculo,
 } from '@medi-supply/ordenes-dm';
 import { ConfigService } from '@nestjs/config';
+import { RepartoOrden } from '@medi-supply/ordenes-dm';
 
 @Injectable()
 export class PedidosService {
@@ -16,7 +19,8 @@ export class PedidosService {
   constructor(
     private httpCall: HttpManagerService,
     private readonly config: ConfigService,
-    @Inject('IOrdenesRepository') private ordenesRepository: IOrdenesRepository
+    @Inject('IOrdenesRepository') private ordenesRepository: IOrdenesRepository,
+    private readonly rutasService: RutasService
   ) {
     this.inventarioServiceUrl = this.config.get<string>(
       'INVENTARIO_SERVICE_URL',
@@ -55,42 +59,85 @@ export class PedidosService {
   ) {
     const filtros: FiltrosEntrega = { paisId, fechaInicio, fechaFin };
 
-    // 1️⃣ Obtener las órdenes con sus bodegas y ubicaciones
     const ordenesParaEntregar =
       await this.ordenesRepository.obtenerOrdenesParaEntregar(filtros);
 
-    // 2️⃣ Si no hay órdenes, devolvemos vacío
     if (!ordenesParaEntregar.length) {
       return [];
     }
 
-    // 3️⃣ Procesar cada orden y asignar vehículo más cercano
-    const resultado = [];
+    const ordenesReparto: RepartoOrden[] = [];
 
     for (const orden of ordenesParaEntregar) {
       const bodegas = orden.bodegasOrigen.map((b) => b.ubicacion);
 
-      // Si no hay bodegas con ubicación, no intentamos calcular
       if (!bodegas.length) {
-        resultado.push({
-          ...orden,
-          vehiculoAsignado: null,
-        });
         continue;
       }
 
-      // Buscar el vehículo más cercano promedio
       const vehiculo = await this.ordenesRepository.obtenerVehiculoMasCercano(
         bodegas
       );
+      if (!vehiculo) {
+        continue;
+      }
 
-      resultado.push({
-        ...orden,
-        vehiculoAsignado: vehiculo ?? null,
+      ordenesReparto.push({
+        orden: orden,
+        vehiculoAsignado: vehiculo,
       });
     }
 
-    // 4️⃣ Retornar el resultado final
-    return resultado;
+    const rutas = agruparPorVehiculo(ordenesReparto);
+
+    const resultados = [];
+
+    for (const ruta of rutas) {
+      const r = await this.rutasService.generarRuta(
+        ruta.origen,
+        ruta.bodegas,
+        ruta.clientes
+      );
+      resultados.push(r);
+    }
+
+    return resultados;
   }
+}
+
+function agruparPorVehiculo(pedidos: RepartoOrden[]): RutaVehiculo[] {
+  const mapaVehiculos = new Map<string, RutaVehiculo>();
+
+  for (const pedido of pedidos) {
+    const v = pedido.vehiculoAsignado;
+    if (!mapaVehiculos.has(v.id)) {
+      mapaVehiculos.set(v.id, {
+        vehiculoId: v.id,
+        placa: v.placa,
+        modelo: v.modelo,
+        origen: v.ubicacionGeografica,
+        bodegas: [],
+        clientes: [],
+      });
+    }
+
+    const grupo = mapaVehiculos.get(v.id)!;
+
+    // Agregar bodegas únicas
+    for (const bodega of pedido.orden.bodegasOrigen) {
+      const existe = grupo.bodegas.some(
+        (b) => b.lat === bodega.ubicacion.lat && b.lng === bodega.ubicacion.lng
+      );
+      if (!existe) grupo.bodegas.push(bodega.ubicacion);
+    }
+
+    // Agregar clientes únicos
+    const cliente = pedido.orden.cliente;
+    const existeCliente = grupo.clientes.some(
+      (c) => c.lat === cliente.ubicacion.lat && c.lng === cliente.ubicacion.lng
+    );
+    if (!existeCliente) grupo.clientes.push(cliente.ubicacion);
+  }
+
+  return Array.from(mapaVehiculos.values());
 }

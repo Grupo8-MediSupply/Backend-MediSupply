@@ -5,8 +5,9 @@ export class Orden extends BaseEntity<string>  {
     readonly productos: ProductoOrden[];
     readonly cliente: string;
     readonly vendedor?: string;
-    readonly estado?: string = 'PENDIENTE';
+    estado?: string = 'PENDIENTE';
     readonly pais?: number;
+    vehiculoAsignado?: string;
 
     constructor(props: {
         id?: string;
@@ -15,6 +16,7 @@ export class Orden extends BaseEntity<string>  {
         vendedor?: string;
         estado?: string;
         pais?: number;
+        vehiculoAsignado?: string;
     }) {
         super({
             id: props.id ?? crypto.randomUUID(),
@@ -24,6 +26,7 @@ export class Orden extends BaseEntity<string>  {
         this.vendedor = props.vendedor;
         this.estado = props.estado;
         this.pais = props.pais;
+        this.vehiculoAsignado = props.vehiculoAsignado;
     }
 
 }
@@ -50,5 +53,6 @@ export interface BodegaOrigen{
 
 export interface ClienteEntrega{
     id: string;
+    nombre: string;
     ubicacion: Ubicacion;
 }
