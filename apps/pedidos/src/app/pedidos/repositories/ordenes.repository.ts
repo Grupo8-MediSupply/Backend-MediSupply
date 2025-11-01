@@ -5,6 +5,7 @@ import {
   Orden,
   OrdenEntrega,
   ProductoOrden,
+  RutaVehiculo,
   Vehiculo,
 } from '@medi-supply/ordenes-dm';
 import { Inject } from '@nestjs/common';
@@ -233,5 +234,13 @@ export class OrdenesRepository implements IOrdenesRepository {
 
   buscarOrdenes(filtros: any): Promise<Orden[]> {
     throw new Error('Method not implemented.');
+  }
+
+  async guardarRutaDeReparto(vehiculoId:string, ordenId:string, ruta:RutaVehiculo): Promise<void> {
+    await this.db('logistica.rutas').insert({
+      vehiculo_id: vehiculoId,
+      orden_id: ordenId,
+      ruta_json: JSON.stringify(ruta),
+    });
   }
 }

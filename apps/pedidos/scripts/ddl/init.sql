@@ -113,3 +113,26 @@ CREATE TRIGGER trg_orden_updated
 ALTER TABLE pedidos.orden
 ADD COLUMN pais_id INT REFERENCES geografia.pais(id);
 
+
+-- ===========================================
+--  TABLA: logistica.rutas
+-- ===========================================
+
+CREATE TABLE IF NOT EXISTS logistica.rutas (
+    vehiculo_id UUID NOT NULL,
+    orden_id UUID NOT NULL,
+    ruta_json JSONB NOT NULL,
+    fecha_creacion TIMESTAMPTZ DEFAULT NOW(),
+
+    CONSTRAINT rutas_pk PRIMARY KEY (vehiculo_id, orden_id),
+
+    CONSTRAINT rutas_vehiculo_fk FOREIGN KEY (vehiculo_id)
+        REFERENCES logistica.vehiculo (id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+
+    CONSTRAINT rutas_orden_fk FOREIGN KEY (orden_id)
+        REFERENCES pedidos.orden (id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+

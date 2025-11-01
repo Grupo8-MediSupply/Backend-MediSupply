@@ -88,7 +88,11 @@ export class PedidosService {
       });
     }
 
-    const rutas = agruparPorVehiculo(ordenesReparto);
+    return ordenesReparto;
+  }
+
+  async GenerarRutasDeReparto(repartoOrdenes: RepartoOrden[]) {
+    const rutas = agruparPorVehiculo(repartoOrdenes);
 
     const resultados = [];
 
@@ -98,6 +102,14 @@ export class PedidosService {
         ruta.bodegas,
         ruta.clientes
       );
+      for (const ordenId of ruta.ordenesIds) {
+        await this.ordenesRepository.guardarRutaDeReparto(
+          ruta.vehiculoId,
+          ordenId,
+          ruta
+        );
+        await this.ordenesRepository.actualizarOrden(ordenId, { estado: EstadoOrden.ENVIADO });
+      }
       resultados.push(r);
     }
 
@@ -118,23 +130,27 @@ function agruparPorVehiculo(pedidos: RepartoOrden[]): RutaVehiculo[] {
         origen: v.ubicacionGeografica,
         bodegas: [],
         clientes: [],
+        ordenesIds: [],
       });
     }
 
     const grupo = mapaVehiculos.get(v.id)!;
 
-    // Agregar bodegas únicas
+    const ordenId = pedido.orden.id;
+    if (!grupo.ordenesIds.includes(ordenId)) {
+      grupo.ordenesIds.push(ordenId);
+    }
+
     for (const bodega of pedido.orden.bodegasOrigen) {
       const existe = grupo.bodegas.some(
-        (b) => b.lat === bodega.ubicacion.lat && b.lng === bodega.ubicacion.lng
+        (b) => b.lat === bodega.ubicacion.lat && b.lng === bodega.ubicacion.lng,
       );
       if (!existe) grupo.bodegas.push(bodega.ubicacion);
     }
 
-    // Agregar clientes únicos
     const cliente = pedido.orden.cliente;
     const existeCliente = grupo.clientes.some(
-      (c) => c.lat === cliente.ubicacion.lat && c.lng === cliente.ubicacion.lng
+      (c) => c.lat === cliente.ubicacion.lat && c.lng === cliente.ubicacion.lng,
     );
     if (!existeCliente) grupo.clientes.push(cliente.ubicacion);
   }

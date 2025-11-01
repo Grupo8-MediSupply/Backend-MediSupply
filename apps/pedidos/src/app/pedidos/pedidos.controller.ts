@@ -1,6 +1,7 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { PedidosService } from './pedidos.service';
 import { User, type JwtPayloadDto } from '@medi-supply/shared';
+import { RepartoOrden } from '@medi-supply/ordenes-dm';
 
 @Controller('v1/pedidos')
 export class PedidosController {
@@ -18,5 +19,13 @@ export class PedidosController {
             fechaFin
         );
 
+    }
+
+    @Post('rutas')
+    async generarRutasDeReparto(
+        @Body() ordenesEntrega: RepartoOrden[],
+        @User() jwt: JwtPayloadDto
+    ) {
+        return this.pedidosService.GenerarRutasDeReparto(ordenesEntrega);
     }
 }
