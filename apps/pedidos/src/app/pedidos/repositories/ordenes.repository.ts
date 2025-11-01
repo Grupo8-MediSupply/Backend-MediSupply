@@ -5,6 +5,8 @@ import {
   Orden,
   OrdenEntrega,
   ProductoOrden,
+  RutaGenerada,
+  RutaVehiculo,
   Vehiculo,
 } from '@medi-supply/ordenes-dm';
 import { Inject } from '@nestjs/common';
@@ -13,25 +15,48 @@ import { DomainException, Ubicacion } from '@medi-supply/core';
 
 export class OrdenesRepository implements IOrdenesRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+  async buscarRutaPorOrdenId(ordenId: string): Promise<RutaGenerada | null> {
+    const consulta = await this.db('logistica.rutas as r')
+      .join('pedidos.orden as o', 'o.ruta_id', 'r.id')
+      .select('r.ruta_json', 'r.id')
+      .where('o.id', ordenId)
+      .first();
+
+    if (!consulta.ruta_json) {
+      return null;
+    }
+
+    return {
+      vehiculoId: consulta.ruta_json.vehiculoId,
+      ordenesIds: consulta.ruta_json.ordenesIds,
+      distancia: consulta.ruta_json.distancia,
+      duracion: consulta.ruta_json.duracion,
+      polilinea: consulta.ruta_json.polilinea,
+      legs: consulta.ruta_json.legs,
+      rutaId: consulta.id,
+    };
+  }
 
   async obtenerVehiculoMasCercano(
-  bodegas: Ubicacion[]
-): Promise<Vehiculo | null> {
-  if (!bodegas.length) return null;
+    bodegas: Ubicacion[]
+  ): Promise<Vehiculo | null> {
+    if (!bodegas.length) return null;
 
-  const values = bodegas
-    .map(
-      (b) =>
-        `(ST_SetSRID(ST_MakePoint(${b.lng}, ${b.lat}), 4326)::geography)`
-    )
-    .join(',');
+    const values = bodegas
+      .map(
+        (b) => `(ST_SetSRID(ST_MakePoint(${b.lng}, ${b.lat}), 4326)::geography)`
+      )
+      .join(',');
 
-  const query = `
+    const query = `
     SELECT
       v.id,
       v.marca,
       v.modelo,
       v.placa,
+      v.pais_id,
+      ST_Y(v.ubicacion::geometry) AS lat,
+      ST_X(v.ubicacion::geometry) AS lng,
       AVG(ST_Distance(v.ubicacion::geography, b.ubicacion)) AS distancia_promedio
     FROM logistica.vehiculo v
     CROSS JOIN (VALUES ${values}) AS b(ubicacion)
@@ -41,19 +66,19 @@ export class OrdenesRepository implements IOrdenesRepository {
     LIMIT 1;
   `;
 
-  const result = await this.db.raw(query);
-  const vehiculo = result.rows?.[0];
+    const result = await this.db.raw(query);
+    const vehiculo = result.rows?.[0];
 
-  if (!vehiculo) return null;
+    if (!vehiculo) return null;
 
-  return new Vehiculo({
-    id: vehiculo.id,
-    placa: vehiculo.placa,
-    modelo: vehiculo.modelo,
-    pais: 0,
-    ubicacionGeografica: { lat: 0, lng: 0 },
-  });
-}
+    return new Vehiculo({
+      id: vehiculo.id,
+      placa: vehiculo.placa,
+      modelo: vehiculo.modelo,
+      pais: vehiculo.pais_id,
+      ubicacionGeografica: { lat: vehiculo.lat, lng: vehiculo.lng },
+    });
+  }
 
   async obtenerOrdenesParaEntregar(
     filtros: FiltrosEntrega
@@ -61,9 +86,11 @@ export class OrdenesRepository implements IOrdenesRepository {
     // 1️⃣ Buscar las órdenes que cumplen los filtros
     const ordenes = await this.db('pedidos.orden as o')
       .join('usuarios.usuario as u', 'u.id', 'o.cliente_id')
+      .join('usuarios.cliente as c', 'c.id', 'u.id')
       .select(
         'o.id as orden_id',
         'o.cliente_id',
+        'c.nombre',
         'o.estado',
         this.db.raw(`
       CASE 
@@ -82,6 +109,7 @@ export class OrdenesRepository implements IOrdenesRepository {
       )
       .where('o.estado', 'RECIBIDO')
       .andWhere('o.pais_id', filtros.paisId)
+      .andWhere('o.ruta_id', null)
       .modify((qb) => {
         if (filtros.fechaInicio && filtros.fechaFin) {
           qb.andWhereBetween('o.created_at', [
@@ -146,6 +174,7 @@ export class OrdenesRepository implements IOrdenesRepository {
           lat: o.cliente_lat,
           lng: o.cliente_lng,
         },
+        nombre: o.nombre,
       },
       bodegasOrigen: bodegasPorOrden[o.orden_id] ?? [],
     }));
@@ -162,6 +191,7 @@ export class OrdenesRepository implements IOrdenesRepository {
       // 2️⃣ Construir los cambios sobre la orden
       const cambiosOrden: Record<string, any> = {};
       if (cambios.estado) cambiosOrden.estado = cambios.estado;
+      if (cambios.ruta_id) cambiosOrden.ruta_id = cambios.ruta_id;
 
       let productosPlano: ProductoOrden[] = [];
 
@@ -188,6 +218,7 @@ export class OrdenesRepository implements IOrdenesRepository {
         // const nuevoSnapshot = [...snapshotExistente, ...productosPlano];
 
         cambiosOrden.total = total;
+        cambiosOrden.vehiculo_asignado = cambios.vehiculoAsignado ?? null;
         // cambiosOrden.productos_snapshot = JSON.stringify(nuevoSnapshot);
 
         // Insertar los nuevos productos
@@ -216,6 +247,7 @@ export class OrdenesRepository implements IOrdenesRepository {
         vendedor: actualizada.vendedor_id,
         estado: actualizada.estado,
         productos: actualizada.productos_snapshot ?? '[]',
+        ruta_id: actualizada.ruta_id ?? undefined,
       });
     });
   }
@@ -227,4 +259,32 @@ export class OrdenesRepository implements IOrdenesRepository {
   buscarOrdenes(filtros: any): Promise<Orden[]> {
     throw new Error('Method not implemented.');
   }
+
+  async guardarRutaDeReparto(vehiculoId:string, ruta:RutaGenerada): Promise<string> {
+    const [id] = await this.db('logistica.rutas').insert({
+      vehiculo_id: vehiculoId,
+      ruta_json: JSON.stringify(ruta),
+    }).returning('id');
+    return id.id;
+  }
+
+  async buscarOrdenPorId(ordenId:string): Promise<Orden | null> {
+    const resultado = await this.db('pedidos.orden')
+      .where({ id: ordenId })
+      .first();
+
+    if (!resultado) {
+      return null;
+    }
+
+    return new Orden({
+      id: resultado.id,
+      cliente: resultado.cliente_id,
+      vendedor: resultado.vendedor_id,
+      estado: resultado.estado,
+      productos: resultado.productos_snapshot ?? '[]',
+      ruta_id: resultado.ruta_id ?? undefined,
+    });
+  }
+
 }
