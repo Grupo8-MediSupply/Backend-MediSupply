@@ -1,5 +1,5 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { CrearOrdenClienteDto } from './dtos/crear-orden.dto';
+import { Body, Controller, Param, Post } from '@nestjs/common';
+import { CrearOrdenDto, CrearOrdenVendedorDto } from './dtos/crear-orden.dto';
 import { OrdenesService } from './ordenes.service';
 import { User, type JwtPayloadDto } from '@medi-supply/shared';
 
@@ -8,7 +8,12 @@ export class OrdenesController {
     constructor(private readonly ordenesService: OrdenesService) {}
 
     @Post('porCliente')
-    async crearOrden(@Body() crearOrdenDto: CrearOrdenClienteDto,@User() jwt: JwtPayloadDto) {
-        return await this.ordenesService.crearOrdenPorCliente(crearOrdenDto, jwt.sub, jwt.pais);
+    async crearOrden(@Body() crearOrdenDto: CrearOrdenDto,@User() jwt: JwtPayloadDto) {
+        return await this.ordenesService.crearOrden(crearOrdenDto, jwt.sub, jwt.pais);
+    }
+
+    @Post('porVendedor/:clienteId')
+    async crearOrdenVendedor(@Param('clienteId') clienteId: string,@Body() crearOrdenDto: CrearOrdenVendedorDto,@User() jwt: JwtPayloadDto) {
+        return await this.ordenesService.crearOrden(crearOrdenDto, clienteId, jwt.pais, jwt.sub);
     }
 }
