@@ -1,6 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { ConfiguracionService } from './configuracion.service';
-import { RolesGuard, Roles, RolesEnum, User } from '@medi-supply/shared';
+import { RolesGuard, Roles, RolesEnum, User, Public } from '@medi-supply/shared';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 
 @UseGuards(RolesGuard)
@@ -12,5 +12,11 @@ export class ConfiguracionController {
   @Get()
   async getConfiguracion(@User() user: JwtPayloadDto) {
     return this.configuracionService.getConfiguracionPorPais(user.pais);
+  }
+
+  @Public()
+  @Get('por-pais/:paisId')
+  async getConfiguracionPorPais(@Param('paisId') paisId: number) {
+    return this.configuracionService.getConfiguracionPorPais(paisId);
   }
 }
