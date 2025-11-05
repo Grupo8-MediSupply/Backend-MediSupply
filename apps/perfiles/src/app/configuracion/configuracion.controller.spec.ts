@@ -89,4 +89,25 @@ describe('ConfiguracionController', () => {
       expect(result).toEqual(mockConfiguration);
     });
   });
+describe('getConfiguracionPorPais', () => {
+  it('debería devolver la configuración según el id de país', async () => {
+    jest
+      .spyOn(service, 'getConfiguracionPorPais')
+      .mockResolvedValue(mockConfiguration);
+
+    const result = await controller.getConfiguracionPorPais(1);
+
+    expect(service.getConfiguracionPorPais).toHaveBeenCalledWith(1);
+    expect(result).toEqual(mockConfiguration);
+  });
+
+  it('debería propagar errores del servicio', async () => {
+    jest
+      .spyOn(service, 'getConfiguracionPorPais')
+      .mockRejectedValue(new Error('fail'));
+
+    await expect(controller.getConfiguracionPorPais(99)).rejects.toThrow('fail');
+    expect(service.getConfiguracionPorPais).toHaveBeenCalledWith(99);
+  });
+});
 });
