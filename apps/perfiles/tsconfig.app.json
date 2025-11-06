@@ -22,6 +22,9 @@
   ],
   "references": [
     {
+      "path": "../../libs/domain/core/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/storage-service/tsconfig.lib.json"
     },
     {

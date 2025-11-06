@@ -138,4 +138,24 @@ export class VisitasService {
 
     return gcp_info.signedUrl;
   }
+
+  async obtenerDetalleVisita(idVisita: string, jwt: JwtPayloadDto) {
+    const visita = await this.visitaRepo.findById(idVisita);
+
+    if (!visita) {
+      throw new NotFoundException('La visita no existe');
+    }
+
+    // Verificación de permisos
+    const isAdmin = jwt.role === RolesEnum.ADMIN;
+    const isOwner = visita.vendedorId === jwt.sub || visita.clienteId === jwt.sub;
+
+    if (!isAdmin && !isOwner) {
+      throw new ForbiddenException(
+        'No tienes permisos para acceder a esta visita'
+      );
+    }
+
+    return visita;
+  }
 }

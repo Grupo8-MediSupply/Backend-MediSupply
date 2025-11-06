@@ -4,6 +4,9 @@
   "include": [],
   "references": [
     {
+      "path": "../../libs/domain/core"
+    },
+    {
       "path": "../../libs/storage-service"
     },
     {
