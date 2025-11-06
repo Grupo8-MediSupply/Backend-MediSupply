@@ -261,3 +261,47 @@ describe('VisitasController - uploadVideo', () => {
     expect(mockVisitasService.cargarVideoVisita).not.toHaveBeenCalled();
   });
 });
+describe('VisitasController - obtenerDetalleVisita', () => {
+  let controller: VisitasController;
+  let mockVisitasService: jest.Mocked<VisitasService>;
+  let jwt: JwtPayloadDto;
+
+  beforeEach(() => {
+    mockVisitasService = {
+      obtenerDetalleVisita: jest.fn(),
+    } as unknown as jest.Mocked<VisitasService>;
+
+    controller = new VisitasController(
+      mockVisitasService as unknown as VisitasService
+    );
+
+    jwt = {
+      sub: 'user-1',
+      email: 'test@user.com',
+      role: 1,
+      pais: 51,
+    } as unknown as JwtPayloadDto;
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('debería delegar al servicio y devolver el detalle', async () => {
+    const id = 'visita-1';
+    const expected = { id, detalle: { notas: 'ok' } };
+    mockVisitasService.obtenerDetalleVisita.mockResolvedValueOnce(expected as any);
+
+    const result = await controller.obtenerDetalleVisita(id, jwt);
+
+    expect(mockVisitasService.obtenerDetalleVisita).toHaveBeenCalledWith(id, jwt);
+    expect(result).toEqual(expected);
+  });
+
+  it('debería propagar errores del servicio', async () => {
+    const id = 'visita-99';
+    mockVisitasService.obtenerDetalleVisita.mockRejectedValueOnce(new Error('fail'));
+
+    await expect(controller.obtenerDetalleVisita(id, jwt)).rejects.toThrow('fail');
+  });
+});
