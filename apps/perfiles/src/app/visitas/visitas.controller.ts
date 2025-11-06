@@ -106,4 +106,11 @@ export class VisitasController {
 
     throw new BadRequestException('No se recibió ningún archivo');
   }
+
+  @UseGuards(RolesGuard)
+  @Roles(RolesEnum.VENDEDOR, RolesEnum.CLIENTE, RolesEnum.ADMIN)
+  @Get('/:id/detalle')
+  obtenerDetalleVisita(@Param('id') id: string, @User() jwt: JwtPayloadDto) {
+    return this.visitasService.obtenerDetalleVisita(id, jwt);
+  }
 }

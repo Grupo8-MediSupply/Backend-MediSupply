@@ -322,3 +322,70 @@ describe('VisitasService.cargarVideoVisita', () => {
     expect(mockVisitaRepo.updateEvidenciaVideo).not.toHaveBeenCalled();
   });
 });
+
+describe('VisitasService - obtenerDetalleVisita', () => {
+  let service: VisitasService;
+  let mockVisitaRepo: any;
+
+  const sampleVisita = {
+    visitaId: 'v1',
+    vendedorId: 'user-vendedor',
+    clienteId: 'user-cliente',
+    // ...otros campos si fueran necesarios
+  };
+
+  beforeEach(() => {
+    mockVisitaRepo = {
+      findById: jest.fn(),
+    };
+
+    // clientesService y gcpStorage no se usan en este método, pasar stubs
+    service = new VisitasService(mockVisitaRepo as any, {} as any, {} as any);
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('debería devolver la visita cuando el usuario es admin', async () => {
+    mockVisitaRepo.findById.mockResolvedValue(sampleVisita);
+
+    const jwt = { sub: 'otro', role: RolesEnum.ADMIN } as any;
+
+    const result = await service.obtenerDetalleVisita('v1', jwt);
+
+    expect(mockVisitaRepo.findById).toHaveBeenCalledWith('v1');
+    expect(result).toBe(sampleVisita);
+  });
+
+  it('debería devolver la visita cuando el usuario es el vendedor (owner)', async () => {
+    mockVisitaRepo.findById.mockResolvedValue(sampleVisita);
+
+    const jwt = { sub: 'user-vendedor', role: RolesEnum.VENDEDOR } as any;
+
+    const result = await service.obtenerDetalleVisita('v1', jwt);
+
+    expect(mockVisitaRepo.findById).toHaveBeenCalledWith('v1');
+    expect(result).toBe(sampleVisita);
+  });
+
+  it('debería lanzar NotFoundException si la visita no existe', async () => {
+    mockVisitaRepo.findById.mockResolvedValue(null);
+
+    const jwt = { sub: 'user-vendedor', role: RolesEnum.VENDEDOR } as any;
+
+    await expect(service.obtenerDetalleVisita('no-existe', jwt)).rejects.toBeInstanceOf(
+      NotFoundException
+    );
+  });
+
+  it('debería lanzar ForbiddenException si el usuario no tiene permisos', async () => {
+    mockVisitaRepo.findById.mockResolvedValue(sampleVisita);
+
+    const jwt = { sub: 'usuario-otro', role: RolesEnum.VENDEDOR } as any;
+
+    await expect(service.obtenerDetalleVisita('v1', jwt)).rejects.toBeInstanceOf(
+      ForbiddenException
+    );
+  });
+});
