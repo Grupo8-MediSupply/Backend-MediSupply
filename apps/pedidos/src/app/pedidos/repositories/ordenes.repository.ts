@@ -112,10 +112,18 @@ export class OrdenesRepository implements IOrdenesRepository {
       .andWhere('o.ruta_id', null)
       .modify((qb) => {
         if (filtros.fechaInicio && filtros.fechaFin) {
-          qb.andWhereBetween('o.created_at', [
-            filtros.fechaInicio,
-            filtros.fechaFin,
-          ]);
+          const inicio = new Date(filtros.fechaInicio);
+          const fin = new Date(filtros.fechaFin);
+
+          // Ajustar rango para incluir todo el día final
+          inicio.setHours(0, 0, 0, 0);
+          fin.setHours(23, 59, 59, 999);
+
+          qb.andWhere('o.created_at', '>=', inicio).andWhere(
+            'o.created_at',
+            '<=',
+            fin
+          );
         }
       });
 
@@ -259,15 +267,20 @@ export class OrdenesRepository implements IOrdenesRepository {
     throw new Error('Method not implemented.');
   }
 
-  async guardarRutaDeReparto(vehiculoId:string, ruta:RutaGenerada): Promise<string> {
-    const [id] = await this.db('logistica.rutas').insert({
-      vehiculo_id: vehiculoId,
-      ruta_json: JSON.stringify(ruta),
-    }).returning('id');
+  async guardarRutaDeReparto(
+    vehiculoId: string,
+    ruta: RutaGenerada
+  ): Promise<string> {
+    const [id] = await this.db('logistica.rutas')
+      .insert({
+        vehiculo_id: vehiculoId,
+        ruta_json: JSON.stringify(ruta),
+      })
+      .returning('id');
     return id.id;
   }
 
-  async buscarOrdenPorId(ordenId:string): Promise<Orden | null> {
+  async buscarOrdenPorId(ordenId: string): Promise<Orden | null> {
     const resultado = await this.db('pedidos.orden')
       .where({ id: ordenId })
       .first();
@@ -285,5 +298,4 @@ export class OrdenesRepository implements IOrdenesRepository {
       ruta_id: resultado.ruta_id ?? undefined,
     });
   }
-
 }
