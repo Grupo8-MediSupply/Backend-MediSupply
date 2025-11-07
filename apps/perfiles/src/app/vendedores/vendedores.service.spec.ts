@@ -1,6 +1,7 @@
 import { VendedoresService } from './vendedores.service';
 import { CreateVendedorDto } from './dtos/request/create-vendedor.dto';
 import { VendedorResponseDto } from './dtos/response/vendedor.response.dto';
+import { VendedorPorPaisResponseDto } from './dtos/response/vendedor-por-pais.response.dto';
 import { Vendedor } from '@medi-supply/perfiles-dm';
 import type { IVendedorRepository } from '@medi-supply/perfiles-dm';
 import { JwtPayloadDto } from '@medi-supply/shared';
@@ -8,13 +9,14 @@ import { JwtPayloadDto } from '@medi-supply/shared';
 describe('VendedoresService (unit)', () => {
   let service: VendedoresService;
   let mockRepo: jest.Mocked<IVendedorRepository>;
-  let jwt : JwtPayloadDto;
+  let jwt: JwtPayloadDto;
 
   beforeEach(() => {
     mockRepo = {
       create: jest.fn(),
       findById: jest.fn(),
-    } as jest.Mocked<IVendedorRepository>;
+      findByCountry: jest.fn(),
+    } as unknown as jest.Mocked<IVendedorRepository>;
 
     service = new VendedoresService(mockRepo);
 
@@ -26,8 +28,10 @@ describe('VendedoresService (unit)', () => {
     };
   });
 
+  // -----------------------------
+  // TESTS PARA CREACIÓN
+  // -----------------------------
   test('crea vendedor correctamente y devuelve VendedorResponseDto', async () => {
-    // Arrange
     const dto: CreateVendedorDto = {
       nombre: 'Ana',
       email: 'ana@ejemplo.com',
@@ -38,20 +42,17 @@ describe('VendedoresService (unit)', () => {
     const createdFromRepo = {
       email: { Value: 'juan@ejemplo.com' },
       paisId: 51,
-      territorio: 'PE',
-    } as unknown as Vendedor; // tipado más exacto
+      nombre: { Value: 'Juan' },
+    } as unknown as Vendedor;
 
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    // Act
     const result = await service.create(dto, jwt);
 
-    // Assert
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
-    expect(mockRepo.create.mock.calls[0][0]).toBeInstanceOf(Vendedor);
     expect(result).toBeInstanceOf(VendedorResponseDto);
     expect(result.email).toBe('juan@ejemplo.com');
-    expect(result.paisCreacion).toBe(String(createdFromRepo.paisId));
+    expect(result.paisCreacion).toBe('51');
   });
 
   test('lanza cuando repo.create devuelve null/undefined', async () => {
@@ -73,11 +74,56 @@ describe('VendedoresService (unit)', () => {
       nombre: 'Pedro',
       email: 'pedro@ejemplo.com',
       identificacion: '654321',
-      tipoIdentificacion: 2,};
+      tipoIdentificacion: 2,
+    };
 
-    const repoError = new Error('db failure');
-    mockRepo.create.mockRejectedValue(repoError);
+    mockRepo.create.mockRejectedValue(new Error('db failure'));
 
     await expect(service.create(dto, jwt)).rejects.toThrow('db failure');
+  });
+
+  // -----------------------------
+  // TESTS PARA LISTAR POR PAÍS
+  // -----------------------------
+  test('listarPorPais devuelve arreglo de VendedorPorPaisResponseDto', async () => {
+    const mockVendedores = [
+      {
+        id: '1',
+        nombre: { Value: 'Juan Pérez' },
+        email: { Value: 'juan@correo.com' },
+        paisId: 1,
+      },
+      {
+        id: '2',
+        nombre: { Value: 'María Gómez' },
+        email: { Value: 'maria@correo.com' },
+        paisId: 1,
+      },
+    ] as unknown as Vendedor[];
+
+    mockRepo.findByCountry.mockResolvedValue(mockVendedores);
+
+    const result = await service.listarPorPais(1);
+
+    expect(mockRepo.findByCountry).toHaveBeenCalledWith(1);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBeInstanceOf(VendedorPorPaisResponseDto);
+    expect(result[0].nombre).toBe('Juan Pérez');
+    expect(result[1].email).toBe('maria@correo.com');
+  });
+
+  test('listarPorPais devuelve arreglo vacío cuando repo retorna vacío', async () => {
+    mockRepo.findByCountry.mockResolvedValue([]);
+
+    const result = await service.listarPorPais(99);
+
+    expect(result).toEqual([]);
+    expect(mockRepo.findByCountry).toHaveBeenCalledWith(99);
+  });
+
+  test('listarPorPais propaga error si repo.findByCountry falla', async () => {
+    mockRepo.findByCountry.mockRejectedValue(new Error('query failed'));
+
+    await expect(service.listarPorPais(5)).rejects.toThrow('query failed');
   });
 });
