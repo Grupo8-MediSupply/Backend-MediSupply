@@ -1,4 +1,4 @@
-import { Nombre } from '@medi-supply/core';
+import { Nombre, Ubicacion } from '@medi-supply/core';
 import { Usuario } from './usuario.entity';
 
 export class Cliente extends Usuario {
@@ -19,6 +19,7 @@ export class Cliente extends Usuario {
     responsableContacto?: string;
     identificacion: string;
     tipoIdentificacion: number;
+    ubicacion?: Ubicacion;
   }) {
     super({
       id: props.id,
@@ -28,6 +29,7 @@ export class Cliente extends Usuario {
       password: props.password,
       identificacion: props.identificacion,
       tipoIdentificacion: props.tipoIdentificacion,
+      ubicacion: props.ubicacion,
     });
 
     this.nombre = new Nombre(props.nombre);
@@ -49,6 +51,7 @@ export class Cliente extends Usuario {
       password: this.password,
       identificacion: this.identificacion,
       tipoIdentificacion: this.tipoIdentificacion,
+      ubicacion: this.ubicacion,
     };
   }
 }

@@ -326,12 +326,17 @@ describe('VisitasService.cargarVideoVisita', () => {
 describe('VisitasService - obtenerDetalleVisita', () => {
   let service: VisitasService;
   let mockVisitaRepo: any;
+  let mockClientesService: jest.Mocked<ClientesService>;
 
   const sampleVisita = {
-    visitaId: 'v1',
+    id: 'v1',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    estado: EstadoVisita.PROGRAMADA,
+    clienteId: 'user-client',
     vendedorId: 'user-vendedor',
-    clienteId: 'user-cliente',
-    // ...otros campos si fueran necesarios
+    fechaVisita: new Date(),
+    comentarios: 'comentario',
   };
 
   beforeEach(() => {
@@ -339,8 +344,19 @@ describe('VisitasService - obtenerDetalleVisita', () => {
       findById: jest.fn(),
     };
 
-    // clientesService y gcpStorage no se usan en este método, pasar stubs
-    service = new VisitasService(mockVisitaRepo as any, {} as any, {} as any);
+    mockClientesService = {
+      findById: jest.fn().mockResolvedValue({
+        id: 'user-client',
+        nombre: { Value: 'Cliente Prueba' },
+        ubicacion: null,
+      }),
+    } as unknown as jest.Mocked<ClientesService>;
+
+    service = new VisitasService(
+      mockVisitaRepo as unknown as any,
+      mockClientesService as unknown as any,
+      {} as unknown as any
+    );
   });
 
   afterEach(() => {
@@ -350,29 +366,32 @@ describe('VisitasService - obtenerDetalleVisita', () => {
   it('debería devolver la visita cuando el usuario es admin', async () => {
     mockVisitaRepo.findById.mockResolvedValue(sampleVisita);
 
-    const jwt = { sub: 'otro', role: RolesEnum.ADMIN } as any;
+    const jwt = { sub: 'otro', role: RolesEnum.ADMIN } as JwtPayloadDto;
 
     const result = await service.obtenerDetalleVisita('v1', jwt);
 
     expect(mockVisitaRepo.findById).toHaveBeenCalledWith('v1');
-    expect(result).toBe(sampleVisita);
+    expect(result.vendedorId).toBe(sampleVisita.vendedorId);
+    expect(result.cliente.id).toBe(sampleVisita.clienteId);
+    expect(result.estado).toBe(sampleVisita.estado);
   });
 
   it('debería devolver la visita cuando el usuario es el vendedor (owner)', async () => {
     mockVisitaRepo.findById.mockResolvedValue(sampleVisita);
 
-    const jwt = { sub: 'user-vendedor', role: RolesEnum.VENDEDOR } as any;
+    const jwt = { sub: 'user-vendedor', role: RolesEnum.VENDEDOR } as JwtPayloadDto;
 
     const result = await service.obtenerDetalleVisita('v1', jwt);
 
     expect(mockVisitaRepo.findById).toHaveBeenCalledWith('v1');
-    expect(result).toBe(sampleVisita);
+    expect(result.vendedorId).toBe(sampleVisita.vendedorId);
+    expect(result.cliente.id).toBe(sampleVisita.clienteId);
   });
 
   it('debería lanzar NotFoundException si la visita no existe', async () => {
     mockVisitaRepo.findById.mockResolvedValue(null);
 
-    const jwt = { sub: 'user-vendedor', role: RolesEnum.VENDEDOR } as any;
+    const jwt = { sub: 'user-vendedor', role: RolesEnum.VENDEDOR } as JwtPayloadDto;
 
     await expect(service.obtenerDetalleVisita('no-existe', jwt)).rejects.toBeInstanceOf(
       NotFoundException
@@ -382,7 +401,7 @@ describe('VisitasService - obtenerDetalleVisita', () => {
   it('debería lanzar ForbiddenException si el usuario no tiene permisos', async () => {
     mockVisitaRepo.findById.mockResolvedValue(sampleVisita);
 
-    const jwt = { sub: 'usuario-otro', role: RolesEnum.VENDEDOR } as any;
+    const jwt = { sub: 'usuario-otro', role: RolesEnum.VENDEDOR } as JwtPayloadDto;
 
     await expect(service.obtenerDetalleVisita('v1', jwt)).rejects.toBeInstanceOf(
       ForbiddenException
