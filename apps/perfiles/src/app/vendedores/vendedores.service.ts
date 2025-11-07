@@ -5,6 +5,7 @@ import { Vendedor } from '@medi-supply/perfiles-dm';
 import { VendedorResponseDto } from './dtos/response/vendedor.response.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtPayloadDto, RolesEnum } from '@medi-supply/shared';
+import { VendedorPorPaisResponseDto } from './dtos/response/vendedor-por-pais.response.dto';
 
 @Injectable()
 export class VendedoresService {
@@ -32,6 +33,20 @@ export class VendedoresService {
     return new VendedorResponseDto(
       createdVendedor.email.Value,
       createdVendedor.paisId.toString()
+    );
+  }
+
+  async listarPorPais(paisId: number): Promise<VendedorPorPaisResponseDto[]> {
+    const vendedores = await this.repo.findByCountry(paisId);
+
+    return vendedores.map(
+      (vendedor) =>
+        new VendedorPorPaisResponseDto(
+          vendedor.id,
+          vendedor.nombre.Value,
+          vendedor.email.Value,
+          vendedor.paisId,
+        ),
     );
   }
 }
