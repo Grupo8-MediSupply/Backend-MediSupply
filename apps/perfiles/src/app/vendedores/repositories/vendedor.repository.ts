@@ -2,6 +2,16 @@ import { IVendedorRepository, Vendedor } from "@medi-supply/perfiles-dm";
 import { Inject, InternalServerErrorException } from "@nestjs/common";
 import { Knex } from "knex";
 
+type VendedorPorPaisRow = {
+  id: string;
+  nombre: string;
+  email: string;
+  rol_id: number;
+  pais_id: number;
+  password: string;
+  identificacion: string;
+  tipo_identificacion: number;
+};
 
 export class VendedorRepository implements IVendedorRepository {
     constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
@@ -89,5 +99,42 @@ export class VendedorRepository implements IVendedorRepository {
     }
   }
 
+  async findByCountry(paisId: number): Promise<Vendedor[]> {
+    try {
+      const records = await this.db<VendedorPorPaisRow>('usuarios.vendedor as vendedor')
+        .select(
+          'vendedor.id',
+          'vendedor.nombre',
+          'usuario.email',
+          'usuario.rol_id',
+          'usuario.pais_id',
+          'usuario.password_hash as password',
+          'usuario.identificacion',
+          'usuario.tipo_identificacion_id as tipo_identificacion'
+        )
+        .join('usuarios.usuario as usuario', 'usuario.id', '=', 'vendedor.id')
+        .where('usuario.pais_id', paisId)
+        .orderBy('vendedor.nombre', 'asc');
+
+      return records.map(
+        (record) =>
+          new Vendedor({
+            id: record.id,
+            email: record.email,
+            rolId: record.rol_id,
+            paisId: record.pais_id,
+            identificacion: record.identificacion,
+            tipoIdentificacion: record.tipo_identificacion,
+            password: record.password,
+            nombre: record.nombre,
+          })
+      );
+    } catch (error) {
+      console.error('❌ Error al listar vendedores por país:', error);
+      throw new InternalServerErrorException(
+        'Error al listar los vendedores para el país especificado.',
+      );
+    }
+  }
 
 }
