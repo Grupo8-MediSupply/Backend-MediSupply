@@ -6,12 +6,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import type { IVisitaRepository } from '@medi-supply/perfiles-dm';
-  import { VisitaCliente, EstadoVisita } from '@medi-supply/perfiles-dm';
+import { VisitaCliente, EstadoVisita } from '@medi-supply/perfiles-dm';
 import { CreateVisitaDto } from './dtos/request/create-visita.dto';
 import { RolesEnum, type JwtPayloadDto } from '@medi-supply/shared';
 import { ClientesService } from '../clientes/clientes.service';
 import { GcpStorageService } from '@medi-supply/storage-service';
 import { RutaVisitaResponseDto } from './dtos/response/ruta-visita.response.dto';
+import { VisitaDetailResponseDto } from './dtos/response/visita-detalle.response.dto';
 
 @Injectable()
 export class VisitasService {
@@ -139,7 +140,10 @@ export class VisitasService {
     return gcp_info.signedUrl;
   }
 
-  async obtenerDetalleVisita(idVisita: string, jwt: JwtPayloadDto) {
+  async obtenerDetalleVisita(
+    idVisita: string,
+    jwt: JwtPayloadDto
+  ): Promise<VisitaDetailResponseDto> {
     const visita = await this.visitaRepo.findById(idVisita);
 
     if (!visita) {
@@ -148,7 +152,8 @@ export class VisitasService {
 
     // Verificación de permisos
     const isAdmin = jwt.role === RolesEnum.ADMIN;
-    const isOwner = visita.vendedorId === jwt.sub || visita.clienteId === jwt.sub;
+    const isOwner =
+      visita.vendedorId === jwt.sub || visita.clienteId === jwt.sub;
 
     if (!isAdmin && !isOwner) {
       throw new ForbiddenException(
@@ -156,6 +161,21 @@ export class VisitasService {
       );
     }
 
-    return visita;
+    const cliente = await this.clientesService.findById(visita.clienteId);
+
+    return new VisitaDetailResponseDto({
+      id: visita.id,
+      createdAt: visita.createdAt.toISOString(),
+      updatedAt: visita.updatedAt.toISOString(),
+      estado: visita.estado,
+      cliente: {
+        id: cliente.id,
+        nombre: cliente.nombre.Value,
+        ubicacion: cliente.ubicacion ?? undefined,
+      },
+      vendedorId: visita.vendedorId,
+      fechaVisita: visita.fechaVisita.toISOString(),
+      comentarios: visita.comentarios ?? undefined,
+    });
   }
 }

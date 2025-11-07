@@ -1,4 +1,4 @@
-import { BaseEntity, Email } from '@medi-supply/core';
+import { BaseEntity, Email, Ubicacion } from '@medi-supply/core';
 
 
 interface UsuarioProps {
@@ -11,6 +11,7 @@ interface UsuarioProps {
   tipoIdentificacion: number;
   createdAt?: Date;
   updatedAt?: Date;
+  ubicacion?: Ubicacion;
 }
 
 export class Usuario extends BaseEntity<string> {
@@ -20,6 +21,7 @@ export class Usuario extends BaseEntity<string> {
   readonly password: string;
   readonly identificacion: string;
   readonly tipoIdentificacion: number;
+  readonly ubicacion?: Ubicacion;
 
   constructor(props: UsuarioProps) {
     super({
@@ -34,5 +36,6 @@ export class Usuario extends BaseEntity<string> {
     this.password = props.password;
     this.identificacion = props.identificacion;
     this.tipoIdentificacion = props.tipoIdentificacion;
+    this.ubicacion = props.ubicacion;
   }
 }

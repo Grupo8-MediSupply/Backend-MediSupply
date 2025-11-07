@@ -1,6 +1,7 @@
 import { IClienteRepository, Cliente } from '@medi-supply/perfiles-dm';
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
+import type { Ubicacion } from '@medi-supply/core';
 
 export class ClienteRepository implements IClienteRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
@@ -58,7 +59,7 @@ export class ClienteRepository implements IClienteRepository {
 
       if ((error as any).code === '23505') {
         throw new InternalServerErrorException(
-          'Ya existe un usuario o cliente con este email o ID.',
+          'Ya existe un usuario o cliente con este email o ID.'
         );
       }
 
@@ -84,6 +85,18 @@ export class ClienteRepository implements IClienteRepository {
           'usuario.password_hash',
           'usuario.identificacion',
           'usuario.tipo_identificacion_id',
+          this.db.raw(`
+      CASE 
+        WHEN usuario.ubicacion IS NOT NULL THEN ST_Y(usuario.ubicacion::geometry)
+        ELSE NULL
+      END AS lat
+    `),
+          this.db.raw(`
+      CASE 
+        WHEN usuario.ubicacion IS NOT NULL THEN ST_X(usuario.ubicacion::geometry)
+        ELSE NULL
+      END AS lng
+    `)
         )
         .join('usuarios.usuario', 'usuario.id', '=', 'cliente.id')
         .where('cliente.id', id)
@@ -103,6 +116,10 @@ export class ClienteRepository implements IClienteRepository {
         responsableContacto: record.responsable_contacto,
         identificacion: record.identificacion,
         tipoIdentificacion: record.tipo_identificacion,
+        ubicacion: {
+          lat: record.lat,
+          lng: record.lng,
+        } as Ubicacion,
       });
     } catch (error) {
       console.error('❌ Error al buscar cliente:', error);
@@ -126,7 +143,7 @@ export class ClienteRepository implements IClienteRepository {
           'u.rol_id',
           'u.pais_id',
           'u.identificacion',
-          'u.tipo_identificacion_id as tipo_identificacion',
+          'u.tipo_identificacion_id as tipo_identificacion'
         )
         .join('usuarios.cliente as c', 'c.id', 'vc.cliente_id')
         .join('usuarios.usuario as u', 'u.id', 'c.id')
@@ -146,12 +163,12 @@ export class ClienteRepository implements IClienteRepository {
             responsableContacto: record.responsable_contacto ?? undefined,
             identificacion: record.identificacion,
             tipoIdentificacion: record.tipo_identificacion,
-          }),
+          })
       );
     } catch (error) {
       console.error('❌ Error al listar clientes por vendedor:', error);
       throw new InternalServerErrorException(
-        'Error al obtener los clientes del vendedor.',
+        'Error al obtener los clientes del vendedor.'
       );
     }
   }
