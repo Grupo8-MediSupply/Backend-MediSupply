@@ -17,10 +17,20 @@ export class ProveedorResponseDto {
   @IsNumber()
   pais?: number;
 
-  constructor(id: string, nombreProveedor: string, email: string, pais: number) {
+  @Expose()
+  @IsNumber()
+  tipoIdentificacion?: number;
+
+  @Expose()
+  @IsString()
+  identificacion?: string;
+
+  constructor(id: string, nombreProveedor: string, email: string, pais: number, tipoIdentificacion: number, identificacion: string) {
     this.id = id;
     this.nombreProveedor = nombreProveedor;
     this.email = email;
     this.pais = pais;
+    this.tipoIdentificacion = tipoIdentificacion;
+    this.identificacion = identificacion;
   }
 }

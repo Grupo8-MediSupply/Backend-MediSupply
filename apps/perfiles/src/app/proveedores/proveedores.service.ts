@@ -13,6 +13,19 @@ export class ProveedoresService {
     private readonly repo: IProveedorRepository
   ) {}
 
+  async findByPais(pais: number) {
+    const proveedores = await this.repo.findByPais(pais);
+    return proveedores.map(proveedor => new ProveedorResponseDto(
+      proveedor.id!,
+      proveedor.nombreProveedor.Value,
+      proveedor.email.Value,
+      proveedor.paisId,
+      proveedor.tipoIdentificacion,
+      proveedor.identificacion
+    ));
+  }
+
+
   async create(createProveedorDto: CreateProveedorDto, paisId: number): Promise<ProveedorResponseDto> {
     const props = {
         email: createProveedorDto.email,
@@ -33,7 +46,9 @@ export class ProveedoresService {
       createdProveedor.id!,
       createdProveedor.nombreProveedor.Value,
       createdProveedor.email.Value,
-      createdProveedor.paisId
+      createdProveedor.paisId,
+      createdProveedor.tipoIdentificacion,
+      createdProveedor.identificacion
     );
   }
 }

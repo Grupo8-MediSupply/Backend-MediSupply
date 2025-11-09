@@ -87,4 +87,40 @@ export class ProveedorRepository implements IProveedorRepository {
       throw new InternalServerErrorException('Error al buscar proveedor.');
     }
   }
+
+  async findByPais(pais: number): Promise<Proveedor[]> {
+    try {
+      const proveedores = await this.db('usuarios.proveedor')
+        .select(
+          'proveedor.id',
+          'proveedor.nombre',
+          'proveedor.contacto_principal',
+          'proveedor.telefono',
+          'usuario.email',
+          'usuario.rol_id',
+          'usuario.pais_id',
+          'usuario.password_hash',
+          'usuario.identificacion',
+          'usuario.tipo_identificacion_id'
+        )
+        .innerJoin('usuarios.usuario', 'usuario.id', 'proveedor.id')
+        .where('usuario.pais_id', pais);
+
+      return proveedores.map(proveedor => new Proveedor({
+        id: proveedor.id,
+        email: proveedor.email,
+        nombreProveedor: proveedor.nombre,
+        numeroIdentificacion: proveedor.identificacion,
+        contactoPrincipal: proveedor.contacto_principal,
+        telefonoContacto: proveedor.telefono,
+        rolId: proveedor.rol_id,
+        paisId: proveedor.pais_id,
+        password: '***',
+        tipoIdentificacion: proveedor.tipo_identificacion_id,
+      }));
+    } catch (error) {
+      console.error('❌ Error al buscar proveedores por país:', error);
+      throw new InternalServerErrorException('Error al buscar proveedores.');
+    }
+  }
 }
