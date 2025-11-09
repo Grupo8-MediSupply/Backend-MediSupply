@@ -12,6 +12,7 @@ describe('ProveedoresService (unit)', () => {
     mockRepo = {
       create: jest.fn(),
       findById: jest.fn(),
+      findByPais: jest.fn(),
     } as jest.Mocked<IProveedorRepository>;
 
     service = new ProveedoresService(mockRepo);
@@ -88,5 +89,65 @@ describe('ProveedoresService (unit)', () => {
     mockRepo.create.mockRejectedValue(repoError);
 
     await expect(service.create(dto, paisId)).rejects.toThrow('db failure');
+  });
+
+  test('debería retornar lista mapeada de ProveedorResponseDto (AAA)', async () => {
+    // Arrange
+    const pais = 1;
+    const repoResult = [
+      {
+        id: 'p1',
+        nombreProveedor: { Value: 'Proveedor Uno' },
+        email: { Value: 'p1@ejemplo.com' },
+        paisId: pais,
+        tipoIdentificacion: 1,
+        identificacion: '9001',
+      },
+      {
+        id: 'p2',
+        nombreProveedor: { Value: 'Proveedor Dos' },
+        email: { Value: 'p2@ejemplo.com' },
+        paisId: pais,
+        tipoIdentificacion: 2,
+        identificacion: '9002',
+      },
+    ] as unknown as Proveedor[];
+
+    mockRepo.findByPais.mockResolvedValue(repoResult);
+
+    // Act
+    const result = await service.findByPais(pais);
+
+    // Assert
+    expect(mockRepo.findByPais).toHaveBeenCalledWith(pais);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBeInstanceOf(ProveedorResponseDto);
+    expect(result[0].id).toBe('p1');
+    expect(result[0].nombreProveedor).toBe('Proveedor Uno');
+    expect(result[0].email).toBe('p1@ejemplo.com');
+    expect(result[1].id).toBe('p2');
+  });
+
+  test('debería retornar arreglo vacío cuando repo devuelve vacío (AAA)', async () => {
+    // Arrange
+    const pais = 99;
+    mockRepo.findByPais.mockResolvedValue([]);
+
+    // Act
+    const result = await service.findByPais(pais);
+
+    // Assert
+    expect(mockRepo.findByPais).toHaveBeenCalledWith(pais);
+    expect(result).toEqual([]);
+  });
+
+  test('debería propagar errores del repositorio (AAA)', async () => {
+    // Arrange
+    const pais = 2;
+    mockRepo.findByPais.mockRejectedValue(new Error('db fail'));
+
+    // Act & Assert
+    await expect(service.findByPais(pais)).rejects.toThrow('db fail');
+    expect(mockRepo.findByPais).toHaveBeenCalledWith(pais);
   });
 });
