@@ -6,11 +6,15 @@ import { type JwtPayloadDto } from '@medi-supply/shared';
 
 describe('OrdenesController', () => {
   let controller: OrdenesController;
-  let ordenesServiceMock: { crearOrden: jest.Mock };
+  let ordenesServiceMock: {
+    crearOrden: jest.Mock;
+    obtenerHistorialPorCliente: jest.Mock;
+  };
 
   beforeEach(async () => {
     ordenesServiceMock = {
       crearOrden: jest.fn(),
+      obtenerHistorialPorCliente: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -52,8 +56,24 @@ describe('OrdenesController', () => {
     expect(ordenesServiceMock.crearOrden).toHaveBeenCalledTimes(1);
     const callArgs = ordenesServiceMock.crearOrden.mock.calls[0];
     expect(callArgs[0]).toBe(dto);
-    expect(callArgs[1]).toBe(clienteId);    // clienteId from route param
-    expect(callArgs[2]).toBe(jwt.pais);     // paisId from jwt
-    expect(callArgs[3]).toBe(jwt.sub);      // vendedorId from jwt.sub
+    expect(callArgs[1]).toBe(clienteId); // clienteId from route param
+    expect(callArgs[2]).toBe(jwt.pais); // paisId from jwt
+    expect(callArgs[3]).toBe(jwt.sub); // vendedorId from jwt.sub
+  });
+
+  it('obtenerHistorialCliente delega en el servicio con clienteId y vendedorId', async () => {
+    const clienteId = 'cliente-222';
+    const jwt = { sub: 'vend-xyz' } as unknown as JwtPayloadDto;
+    const historialEsperado = [{ ordenId: 'orden-1' }];
+    ordenesServiceMock.obtenerHistorialPorCliente.mockResolvedValueOnce(historialEsperado);
+
+    const resultado = await controller.obtenerHistorialCliente(clienteId, jwt);
+
+    expect(ordenesServiceMock.obtenerHistorialPorCliente).toHaveBeenCalledTimes(1);
+    expect(ordenesServiceMock.obtenerHistorialPorCliente).toHaveBeenCalledWith(
+      clienteId,
+      jwt.sub
+    );
+    expect(resultado).toBe(historialEsperado);
   });
 });
