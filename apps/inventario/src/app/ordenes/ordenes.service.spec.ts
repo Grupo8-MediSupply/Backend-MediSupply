@@ -6,6 +6,7 @@ import { CrearOrdenDto } from './dtos/crear-orden.dto';
 import { Lote } from '@medi-supply/bodegas-dm';
 import { JwtPayloadDto } from 'libs/shared/src';
 import { BodegasService } from '../bodegas/bodegas.service';
+import { HistorialVenta, ProductoOrden } from '@medi-supply/ordenes-dm';
 
 // Local helper types
 type ProductoDto = { lote: string; cantidad: number; bodega?: string };
@@ -20,7 +21,13 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
   let mockPubSub: { publish: jest.Mock };
   let mockProductoService: { findByLote: jest.Mock<Promise<ProductoInfo>, [string]> };
   let mockBodegasService: { findLoteEnBodega: jest.Mock<Promise<Lote | null>, [string, string | undefined]> };
-  let mockRepository: { crearOrden: jest.Mock<Promise<OrdenPersisted>, [unknown]> };
+  let mockRepository: {
+    crearOrden: jest.Mock<Promise<OrdenPersisted>, [unknown]>;
+    obtenerHistorialVentasPorCliente: jest.Mock<
+      Promise<HistorialVenta[]>,
+      [string, string]
+    >;
+  };
   let jwt: JwtPayloadDto;
 
   beforeEach(async () => {
@@ -32,6 +39,10 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
 
     mockRepository = {
       crearOrden: jest.fn<Promise<OrdenPersisted>, [unknown]>(),
+      obtenerHistorialVentasPorCliente: jest.fn<
+        Promise<HistorialVenta[]>,
+        [string, string]
+      >(),
     };
 
     // Provide a sensible default: lote exists in bodega
@@ -199,5 +210,51 @@ describe('OrdenesService - crearOrdenPorCliente', () => {
     expect(mockProductoService.findByLote).not.toHaveBeenCalled();
     expect(mockRepository.crearOrden).not.toHaveBeenCalled();
     expect(mockPubSub.publish).not.toHaveBeenCalled();
+  });
+
+  it('obtenerHistorialPorCliente delega en el repositorio y transforma el resultado', async () => {
+    const fechaCreacion = new Date('2024-01-10T10:00:00Z');
+    const fechaActualizacion = new Date('2024-01-11T10:00:00Z');
+    const historial: HistorialVenta[] = [
+      {
+        ordenId: 'orden-1',
+        clienteId: 'cliente-1',
+        vendedorId: 'vendedor-1',
+        estado: 'COMPLETADO' as any,
+        total: 1200,
+        fechaCreacion,
+        fechaActualizacion,
+        productos: [
+          {
+            lote: 'L1',
+            cantidad: 2,
+            bodega: 'B1',
+            precioUnitario: 500,
+            productoRegional: 'P1',
+          } as ProductoOrden,
+        ],
+      },
+    ];
+
+    mockRepository.obtenerHistorialVentasPorCliente.mockResolvedValueOnce(historial);
+
+    const resultado = await service.obtenerHistorialPorCliente('cliente-1', 'vendedor-1');
+
+    expect(mockRepository.obtenerHistorialVentasPorCliente).toHaveBeenCalledWith(
+      'vendedor-1',
+      'cliente-1'
+    );
+
+    expect(resultado).toHaveLength(1);
+    expect(resultado[0].ordenId).toBe('orden-1');
+    expect(resultado[0].productos[0]).toEqual({
+      lote: 'L1',
+      cantidad: 2,
+      bodega: 'B1',
+      precioUnitario: 500,
+      productoRegional: 'P1',
+    });
+    expect(resultado[0].fechaCreacion).toBe(fechaCreacion.toISOString());
+    expect(resultado[0].fechaActualizacion).toBe(fechaActualizacion.toISOString());
   });
 });

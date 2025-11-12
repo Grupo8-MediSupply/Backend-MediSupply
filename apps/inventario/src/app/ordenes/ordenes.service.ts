@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CrearOrdenDto, OrdenCreadaDto } from './dtos/crear-orden.dto';
+import { HistorialOrdenResponseDto } from './dtos/historial-orden.response.dto';
 import {
   type IOrdenesRepository,
   Orden,
@@ -25,7 +26,6 @@ export class OrdenesService {
     vendedorId?: string
   ): Promise<OrdenCreadaDto> {
 
-    
 
     const productosConInfo: ProductoOrden[] = await Promise.all(
       crearOrdenDto.productos.map(async (producto) => {
@@ -60,5 +60,27 @@ export class OrdenesService {
       id: ordenCreada.id,
       estado: ordenCreada.estado,
     };
+  }
+
+  async obtenerHistorialPorCliente(
+    clienteId: string,
+    vendedorId: string
+  ): Promise<HistorialOrdenResponseDto[]> {
+    const historial = await this.ordenesRepository.obtenerHistorialVentasPorCliente(
+      vendedorId,
+      clienteId
+    );
+
+    return historial.map(
+      (venta) =>
+        new HistorialOrdenResponseDto({
+          ordenId: venta.ordenId,
+          estado: venta.estado,
+          total: venta.total,
+          fechaCreacion: venta.fechaCreacion,
+          fechaActualizacion: venta.fechaActualizacion,
+          productos: venta.productos,
+        })
+    );
   }
 }
