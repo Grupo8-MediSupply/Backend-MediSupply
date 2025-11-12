@@ -16,7 +16,8 @@ import { UpdateProductoDto } from './dtos/request/update-producto.dto';
 import type { JwtPayloadDto } from '@medi-supply/shared';
 import { Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
 import { ProductoOrdenDto } from '../ordenes/dtos/crear-orden.dto';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { SolicitarLoteProducto } from './dtos/request/solicitar-lote-productos';
 
 @Controller('v1/producto')
 export class ProductoController {
@@ -57,5 +58,11 @@ export class ProductoController {
   async actualizarStock(@Body() productos: ProductoOrdenDto[]) {
     await this.productoService.actualizarStockProductos(productos);
     return ApiOkResponse();
+  }
+
+  @Post('solicitar-lote')
+  async solicitarLote(@Body() productos: SolicitarLoteProducto[], @User() jwt: JwtPayloadDto) {
+    await this.productoService.solicitarLoteProductos(productos, jwt);
+    return ApiCreatedResponse();
   }
 }

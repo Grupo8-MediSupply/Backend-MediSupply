@@ -193,4 +193,16 @@ CREATE TABLE IF NOT EXISTS logistica.vehiculo (
 
 
 
+CREATE TABLE IF NOT EXISTS productos.solicitud_proveedor (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    proveedor_id UUID NOT NULL REFERENCES usuarios.proveedor(id),
+    producto_regional_id UUID NOT NULL REFERENCES productos.producto_regional(id),
+    cantidad INT NOT NULL CHECK (cantidad > 0),
+    estado VARCHAR(50) NOT NULL DEFAULT 'PENDIENTE',
+    numero_lote VARCHAR(20) NULL,
+    created_at TIMESTAMP DEFAULT now(),
+    updated_at TIMESTAMP DEFAULT now()
+);
+
+
 
