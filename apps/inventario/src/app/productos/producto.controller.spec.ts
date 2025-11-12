@@ -5,7 +5,8 @@ import { CreateProductoDto } from './dtos/request/create-producto.dto';
 import { UpdateProductoDto } from './dtos/request/update-producto.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { JwtPayloadDto } from '@medi-supply/shared';
-import { ProductoDetalle, TipoProducto } from '@medi-supply/productos-dm';
+import { ProductoDetalle, TipoProducto, SolicitudProducto, ProductoEquipoMedico } from '@medi-supply/productos-dm';
+import { SolicitarLoteProducto } from './dtos/request/solicitar-lote-productos';
 
 describe('ProductoController', () => {
   let controller: ProductoController;
@@ -169,11 +170,16 @@ describe('ProductoController', () => {
   describe('findById', () => {
     it('debería llamar al servicio con el ID y retornar su resultado', async () => {
       const expected:ProductoDetalle = {
-        id: 1,
-        nombre: 'Paracetamol',
+        producto_info:new ProductoEquipoMedico(
+          {
+            id: 1,
+            sku: 'SKU-123',
+            nombre: 'Equipo X',
+            descripcion: 'Descripción del equipo X',
+            tipoProducto: TipoProducto.EQUIPO,
+          }
+        ),
         tipo: 'medicamento',
-        sku: 'SKU-001',
-        descripcion: 'Analgesico',
         precio: 1000,
         proveedor: {
           id: '1',
@@ -181,6 +187,7 @@ describe('ProductoController', () => {
           pais: 'PaisY',
         },
         productoPaisId: 1,
+        bodegas: [],
       }
 
       service.findById.mockResolvedValue(expected);
@@ -196,6 +203,65 @@ describe('ProductoController', () => {
 
       await expect(controller.findById('1',jwt)).rejects.toThrow(NotFoundException);
       expect(service.findById).toHaveBeenCalledWith('1', jwt);
+    });
+  });
+
+  describe('solicitarLote', () => {
+    it('debería llamar al servicio con los productos y el JWT, y retornar ApiCreatedResponse', async () => {
+      // Arrange
+      const productos: SolicitarLoteProducto[] = [
+        {
+          sku: 'prod-1',
+          cantidad: 100,
+        },
+        {
+          sku: 'prod-2',
+          cantidad: 50,
+        },
+      ];
+
+      service.solicitarLoteProductos = jest.fn().mockResolvedValue(undefined);
+
+      // Act
+      const result = await controller.solicitarLote(productos, jwt);
+
+      // Assert
+      expect(service.solicitarLoteProductos).toHaveBeenCalledWith(productos, jwt);
+      expect(result).toBeDefined();
+    });
+
+    it('debería propagar errores del servicio', async () => {
+      // Arrange
+      const productos: SolicitarLoteProducto[] = [
+        {
+          sku: 'prod-invalid',
+          cantidad: 10,
+        },
+      ];
+
+      service.solicitarLoteProductos = jest.fn().mockRejectedValue(
+        new BadRequestException('Producto no encontrado')
+      );
+
+      // Act & Assert
+      await expect(controller.solicitarLote(productos, jwt)).rejects.toThrow(
+        BadRequestException
+      );
+      expect(service.solicitarLoteProductos).toHaveBeenCalledWith(productos, jwt);
+    });
+
+    it('debería manejar array vacío de productos', async () => {
+      // Arrange
+      const productos: SolicitarLoteProducto[] = [];
+
+      service.solicitarLoteProductos = jest.fn().mockResolvedValue(undefined);
+
+      // Act
+      const result = await controller.solicitarLote(productos, jwt);
+
+      // Assert
+      expect(service.solicitarLoteProductos).toHaveBeenCalledWith(productos, jwt);
+      expect(result).toBeDefined();
     });
   });
 
