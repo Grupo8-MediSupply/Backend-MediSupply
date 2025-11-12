@@ -11,6 +11,7 @@ import type {
   IProductoRepository,
   ProductoInfoRegion,
   ProductoVariant,
+  ProductoDetalle,
 } from '@medi-supply/productos-dm';
 import { TipoProducto } from '@medi-supply/productos-dm';
 import type { JwtPayloadDto } from '@medi-supply/shared';
@@ -34,7 +35,7 @@ describe('ProductoService (unit)', () => {
       findByBodega: jest.fn(),
       // si IProductoRepository tiene más métodos, agrégalos como jest.fn()
       update: jest.fn(),
-    } as jest.Mocked<IProductoRepository>;
+    } as unknown as jest.Mocked<IProductoRepository>;
 
     service = new ProductoService(mockRepo);
   });
@@ -71,7 +72,7 @@ describe('ProductoService (unit)', () => {
     } as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto, jwt);
+  await service.createProducto(dto, jwt);
 
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
     const arg = mockRepo.create.mock.calls[0][0];
@@ -113,7 +114,7 @@ describe('ProductoService (unit)', () => {
     } as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto, jwt);
+  await service.createProducto(dto, jwt);
 
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
     const arg = mockRepo.create.mock.calls[0][0];
@@ -156,7 +157,7 @@ describe('ProductoService (unit)', () => {
     } as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto, jwt);
+  await service.createProducto(dto, jwt);
 
     expect(mockRepo.create).toHaveBeenCalledTimes(1);
     const arg = mockRepo.create.mock.calls[0][0];
@@ -262,7 +263,7 @@ describe('ProductoService (unit)', () => {
     } as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto, jwt);
+  await service.createProducto(dto, jwt);
 
     expect(mockRepo.create).toHaveBeenCalled();
     const arg = mockRepo.create.mock.calls[0][0];
@@ -303,7 +304,7 @@ describe('ProductoService (unit)', () => {
     } as ProductoInfoRegion;
     mockRepo.create.mockResolvedValue(createdFromRepo);
 
-    const result = await service.createProducto(dto, jwt);
+  await service.createProducto(dto, jwt);
 
     expect(mockRepo.create).toHaveBeenCalled();
     const arg = mockRepo.create.mock.calls[0][0];
@@ -392,6 +393,150 @@ describe('ProductoService (unit)', () => {
         service.obtenerProductosDeUnaRegion(regionId)
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(mockRepo.findByPais).toHaveBeenCalledWith(regionId);
+    });
+  });
+
+  // Tests for solicitarLoteProductos (AAA)
+  describe('solicitarLoteProductos (unit)', () => {
+    beforeEach(() => {
+      mockRepo.findBySku = jest.fn();
+      mockRepo.solicitarLoteProductos = jest.fn();
+    });
+
+    test('Arrange/Act/Assert: solicita lotes correctamente cuando todos los productos existen', async () => {
+      // Arrange
+      const productos = [
+        { sku: 'SKU-001', cantidad: 100 } as any,
+        { sku: 'SKU-002', cantidad: 50 } as any,
+      ];
+
+      const detalleRegional1 = {
+        productoGlobal: { sku: 'SKU-001' },
+        detalleRegional: { id: 'regional-1', proveedor: 'prov-1' },
+      } as unknown as ProductoInfoRegion;
+
+      const detalleRegional2 = {
+        productoGlobal: { sku: 'SKU-002' },
+        detalleRegional: { id: 'regional-2', proveedor: 'prov-2' },
+      } as unknown as ProductoInfoRegion;
+
+      (mockRepo.findBySku as jest.Mock)
+        .mockResolvedValueOnce(detalleRegional1)
+        .mockResolvedValueOnce(detalleRegional2);
+
+      (mockRepo.solicitarLoteProductos as jest.Mock).mockResolvedValue(undefined);
+
+      // Act
+      await service.solicitarLoteProductos(productos, jwt);
+
+      // Assert
+      expect(mockRepo.findBySku).toHaveBeenCalledTimes(2);
+      expect(mockRepo.findBySku).toHaveBeenCalledWith('SKU-001', jwt.pais);
+      expect(mockRepo.findBySku).toHaveBeenCalledWith('SKU-002', jwt.pais);
+
+  expect(mockRepo.solicitarLoteProductos).toHaveBeenCalledTimes(1);
+  const llamadas = (mockRepo.solicitarLoteProductos as jest.Mock).mock.calls[0][0];
+  expect(llamadas).toHaveLength(2);
+      expect(llamadas[0]).toEqual({
+        sku: 'SKU-001',
+        cantidad: 100,
+        proveedorId: 'prov-1',
+        producto_regional_id: 'regional-1',
+      });
+      expect(llamadas[1]).toEqual({
+        sku: 'SKU-002',
+        cantidad: 50,
+        proveedorId: 'prov-2',
+        producto_regional_id: 'regional-2',
+      });
+    });
+
+    test('Arrange/Act/Assert: filtra productos que no existen y solicita solo los válidos', async () => {
+      // Arrange
+      const productos = [
+        { sku: 'SKU-VALID', cantidad: 100 } as any,
+        { sku: 'SKU-INVALID', cantidad: 50 } as any,
+      ];
+
+      const detalleRegionalValid = {
+        productoGlobal: { sku: 'SKU-VALID' },
+        detalleRegional: { id: 'regional-valid', proveedor: 'prov-valid' },
+      } as unknown as ProductoInfoRegion;
+
+      (mockRepo.findBySku as jest.Mock)
+        .mockResolvedValueOnce(detalleRegionalValid)
+        .mockResolvedValueOnce(null);
+
+      (mockRepo.solicitarLoteProductos as jest.Mock).mockResolvedValue(undefined);
+
+      // Act
+      await service.solicitarLoteProductos(productos, jwt);
+
+      // Assert
+      expect(mockRepo.findBySku).toHaveBeenCalledTimes(2);
+      expect(mockRepo.solicitarLoteProductos).toHaveBeenCalledTimes(1);
+      const solicitudes = (mockRepo.solicitarLoteProductos as jest.Mock).mock.calls[0][0];
+      expect(solicitudes).toHaveLength(1);
+      expect(solicitudes[0].sku).toBe('SKU-VALID');
+    });
+
+    test('Arrange/Act/Assert: lanza BadRequestException cuando ningún producto es válido', async () => {
+      // Arrange
+      const productos = [
+        { sku: 'SKU-INVALID-1', cantidad: 100 } as any,
+        { sku: 'SKU-INVALID-2', cantidad: 50 } as any,
+      ];
+
+      (mockRepo.findBySku as jest.Mock).mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.solicitarLoteProductos(productos, jwt)).rejects.toBeInstanceOf(
+        BadRequestException
+      );
+      expect(mockRepo.findBySku).toHaveBeenCalledTimes(2);
+      expect(mockRepo.solicitarLoteProductos).not.toHaveBeenCalled();
+    });
+
+    test('Arrange/Act/Assert: lanza BadRequestException cuando el array de productos está vacío', async () => {
+      // Arrange
+      const productos: any[] = [];
+
+      // Act & Assert
+      await expect(service.solicitarLoteProductos(productos, jwt)).rejects.toBeInstanceOf(
+        BadRequestException
+      );
+      expect(mockRepo.findBySku).not.toHaveBeenCalled();
+      expect(mockRepo.solicitarLoteProductos).not.toHaveBeenCalled();
+    });
+
+    test('Arrange/Act/Assert: propaga errores del repositorio al buscar productos', async () => {
+      // Arrange
+      const productos = [{ sku: 'SKU-ERROR', cantidad: 100 } as any];
+
+      (mockRepo.findBySku as jest.Mock).mockRejectedValue(new Error('DB error'));
+
+      // Act & Assert
+      await expect(service.solicitarLoteProductos(productos, jwt)).rejects.toThrow('DB error');
+      expect(mockRepo.findBySku).toHaveBeenCalledWith('SKU-ERROR', jwt.pais);
+      expect(mockRepo.solicitarLoteProductos).not.toHaveBeenCalled();
+    });
+
+    test('Arrange/Act/Assert: propaga errores del repositorio al solicitar lotes', async () => {
+      // Arrange
+      const productos = [{ sku: 'SKU-001', cantidad: 100 } as any];
+
+      const detalleRegional = {
+        productoGlobal: { sku: 'SKU-001' },
+        detalleRegional: { id: 'regional-1', proveedor: 'prov-1' },
+      } as unknown as ProductoInfoRegion;
+
+      (mockRepo.findBySku as jest.Mock).mockResolvedValue(detalleRegional);
+      (mockRepo.solicitarLoteProductos as jest.Mock).mockRejectedValue(new Error('Solicitud failed'));
+
+      // Act & Assert
+      await expect(service.solicitarLoteProductos(productos, jwt)).rejects.toThrow('Solicitud failed');
+      expect(mockRepo.findBySku).toHaveBeenCalledWith('SKU-001', jwt.pais);
+      expect(mockRepo.solicitarLoteProductos).toHaveBeenCalledTimes(1);
     });
   });
 

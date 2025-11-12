@@ -10,6 +10,7 @@ import {
   DetalleRegional,
   ProductoVariant,
   BodegaConLotes,
+  SolicitudProducto,
 } from '@medi-supply/productos-dm';
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
@@ -17,6 +18,30 @@ import { ProductoOrden } from 'libs/domain/ordenes-dm/src';
 
 export class ProductoRepository implements IProductoRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+
+  async solicitarLoteProductos(
+    solicitudLote: SolicitudProducto[]
+  ): Promise<void> {
+    const trx = await this.db.transaction();
+    try {
+      for (const solicitud of solicitudLote) {
+        await trx('productos.solicitud_proveedor').insert({
+          proveedor_id: solicitud.proveedorId,
+          producto_regional_id: solicitud.producto_regional_id,
+          cantidad: solicitud.cantidad,
+          estado: 'PENDIENTE',
+        });
+      }
+
+      await trx.commit();
+    } catch (error) {
+      await trx.rollback();
+      console.error('❌ Error al registrar solicitudes de producto:', error);
+      throw new InternalServerErrorException(
+        'Error al registrar solicitudes de producto'
+      );
+    }
+  }
 
   async findByLote(loteId: string): Promise<DetalleRegional | null> {
     const result = await this.db('logistica.lote as l')
@@ -434,7 +459,10 @@ export class ProductoRepository implements IProductoRepository {
     return detalle;
   }
 
-  async findBySku(sku: string): Promise<ProductoInfoRegion | null> {
+  async findBySku(
+    sku: string,
+    paisId?: number
+  ): Promise<ProductoInfoRegion | null> {
     try {
       const producto = await this.db('productos.producto_global')
         .select('*')
@@ -443,12 +471,12 @@ export class ProductoRepository implements IProductoRepository {
 
       if (!producto) return null;
 
-      const detalle = await this.db('productos.producto_regional')
-        .select('*')
-        .where({ producto_global_id: producto.id })
-        .first();
-
-      if (!detalle) return null;
+      const detalle = paisId
+        ? await this.db('productos.producto_regional')
+            .select('id', 'pais_id as pais', 'proveedor_id as proveedor', 'precio')
+            .where({ producto_global_id: producto.id, pais_id: paisId })
+            .first()
+        : null;
 
       return {
         productoGlobal: producto,
