@@ -10,6 +10,8 @@ import { MediSupplyOrdenesDmModule } from '@medi-supply/ordenes-dm';
 import { OrdenesModule } from './ordenes/ordenes.module';
 import { MediSupplyMessagingPubsubModule } from '@medi-supply/messaging-pubsub';
 import { ReportesModule } from './reportes/reportes.module';
+import { MediSupplyVentasDmModule } from '@medi-supply/ventas-dm';
+import { PlanesVentaModule } from './ventas/planes-venta/planes-venta.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { ReportesModule } from './reportes/reportes.module';
     OrdenesModule,
     MediSupplyMessagingPubsubModule,
     ReportesModule,
+    MediSupplyVentasDmModule,
+    PlanesVentaModule,
   ],
 })
 export class AppModule {}
