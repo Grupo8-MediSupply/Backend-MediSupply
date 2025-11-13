@@ -2,6 +2,7 @@ export * from './lib/perfiles-dm.module';
 export * from './lib/entities/usuario.entity';
 export * from './lib/entities/vendedor.entity';
 export * from './lib/entities/cliente.entity';
+export * from './lib/entities/auditoria.entity';
 export * from './lib/entities/visita-cliente.entity';
 export * from './lib/interfaces/repositories/Ivisita.repository.interface'
 export * from './lib/interfaces/repositories/Ivendedor.repository.interface';
@@ -13,3 +14,6 @@ export * from './lib/entities/pais.entity';
 export * from './lib/interfaces/repositories/Ipais.repository.interface';
 export * from './lib/entities/tipo-identificacion.entity';
 export * from './lib/interfaces/repositories/Itipo-identifiacion.repository.interface';
+export * from './lib/interfaces/repositories/IAuditoria.repository.interface';
+
+

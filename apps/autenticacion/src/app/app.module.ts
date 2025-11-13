@@ -9,6 +9,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { MediSupplyPerfilesDmModule } from '@medi-supply/perfiles-dm';
 import { UsuariosRepository } from './repositories/usuarios.repository';
+import { AuditoriaModule } from './auditoria/auditoria.module';
 
 @Module({
   imports: [
@@ -39,7 +40,7 @@ import { UsuariosRepository } from './repositories/usuarios.repository';
               algorithm: 'RS256',
               expiresIn: `${configService.get('JWT_EXPIRES_IN') || 3600}s`,
               issuer: jwtIssuer,
-              audience: jwtAudience
+              audience: jwtAudience,
             },
           };
         } else {
@@ -59,6 +60,7 @@ import { UsuariosRepository } from './repositories/usuarios.repository';
         }
       },
     }),
+    AuditoriaModule,
   ],
   controllers: [AppController],
   providers: [
