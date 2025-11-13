@@ -19,6 +19,9 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../messaging-pubsub/tsconfig.lib.json"
+    },
+    {
       "path": "../domain/core/tsconfig.lib.json"
     }
   ],

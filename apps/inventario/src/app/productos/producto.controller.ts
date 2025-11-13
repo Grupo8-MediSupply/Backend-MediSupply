@@ -14,7 +14,7 @@ import { ProductoService } from './producto.service';
 import { CreateProductoDto } from './dtos/request/create-producto.dto';
 import { UpdateProductoDto } from './dtos/request/update-producto.dto';
 import type { JwtPayloadDto } from '@medi-supply/shared';
-import { Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
+import { Auditable, Roles, RolesEnum, RolesGuard, User } from '@medi-supply/shared';
 import { ProductoOrdenDto } from '../ordenes/dtos/crear-orden.dto';
 import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { SolicitarLoteProducto } from './dtos/request/solicitar-lote-productos';
@@ -23,11 +23,13 @@ import { SolicitarLoteProducto } from './dtos/request/solicitar-lote-productos';
 export class ProductoController {
   constructor(private readonly productoService: ProductoService) {}
 
+  @Auditable({ module: 'Product', action: 'Crear Producto' })
   @Post()
   async createProducto(@Body() producto: CreateProductoDto, @User() user: JwtPayloadDto) {
     return await this.productoService.createProducto(producto, user);
   }
 
+  @Auditable({ module: 'Product', action: 'Actualizar Producto' })
   @UseGuards(RolesGuard)
   @Roles(RolesEnum.VENDEDOR, RolesEnum.ADMIN)
   @Patch(':id')
