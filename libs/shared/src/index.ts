@@ -9,3 +9,6 @@ export * from './lib/auth/enums/roles.enum';
 export * from './lib/auth/decorators/roles.decorator';
 export * from './lib/auth/guards/roles.guard';
 export * from './lib/swagger/swagger-docs';
+export * from './lib/auth/decorators/audit.decorator';
+export * from './lib/interceptors/audit.interceptor';
+export * from './lib/auth/strategies/audit.strategy';

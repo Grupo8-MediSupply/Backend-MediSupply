@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { CrearOrdenDto, CrearOrdenVendedorDto } from './dtos/crear-orden.dto';
 import { OrdenesService } from './ordenes.service';
-import { User, type JwtPayloadDto } from '@medi-supply/shared';
+import { Auditable, User, type JwtPayloadDto } from '@medi-supply/shared';
 
 @Controller('v1/ordenes')
 export class OrdenesController {
@@ -12,6 +12,7 @@ export class OrdenesController {
         return await this.ordenesService.crearOrden(crearOrdenDto, jwt.sub, jwt.pais);
     }
 
+    @Auditable({ module: 'Order', action: 'Crear Orden por Vendedor' })
     @Post('porVendedor/:clienteId')
     async crearOrdenVendedor(@Param('clienteId') clienteId: string,@Body() crearOrdenDto: CrearOrdenVendedorDto,@User() jwt: JwtPayloadDto) {
         return await this.ordenesService.crearOrden(crearOrdenDto, clienteId, jwt.pais, jwt.sub);

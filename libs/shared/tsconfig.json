@@ -4,6 +4,9 @@
   "include": [],
   "references": [
     {
+      "path": "../messaging-pubsub"
+    },
+    {
       "path": "../domain/core"
     },
     {

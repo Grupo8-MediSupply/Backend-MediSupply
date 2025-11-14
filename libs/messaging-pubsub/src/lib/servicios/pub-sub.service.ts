@@ -1,7 +1,12 @@
-import { Global, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Global,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PubSub, Subscription } from '@google-cloud/pubsub';
 import { ConfigService } from '@nestjs/config';
-
 
 @Injectable()
 export class PubSubService implements OnModuleInit, OnModuleDestroy {
@@ -15,7 +20,9 @@ export class PubSubService implements OnModuleInit, OnModuleDestroy {
     const projectId = this.configService.get<string>('GCP_PROJECT_ID');
 
     // Detectar si se está usando el emulador local
-    const isLocalEmulator = !!this.configService.get<string>('PUBSUB_EMULATOR_HOST');
+    const isLocalEmulator = !!this.configService.get<string>(
+      'PUBSUB_EMULATOR_HOST'
+    );
 
     this.pubsub = new PubSub({
       projectId,
@@ -27,7 +34,7 @@ export class PubSubService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(
       isLocalEmulator
         ? '📦 Conectado al emulador local de Pub/Sub'
-        : `🌩️ Conectado a GCP Pub/Sub (proyecto: ${projectId})`,
+        : `🌩️ Conectado a GCP Pub/Sub (proyecto: ${projectId})`
     );
   }
 
@@ -37,7 +44,9 @@ export class PubSubService implements OnModuleInit, OnModuleDestroy {
       await this.pubsub.topic(topicName).publishMessage({ data: dataBuffer });
       this.logger.log(`✅ Mensaje publicado en topic "${topicName}"`);
     } catch (err) {
-      this.logger.error(`❌ Error publicando en "${topicName}": ${err.message}`);
+      this.logger.error(
+        `❌ Error publicando en "${topicName}": ${err.message}`
+      );
     }
   }
 
@@ -49,13 +58,15 @@ export class PubSubService implements OnModuleInit, OnModuleDestroy {
         try {
           await handler(message);
           message.ack();
-        } catch (err) {
-          this.logger.error(`Error procesando mensaje: ${err.message}`);
+        } catch (err: any) {
+          this.logger.error(`❌ Error procesando mensaje: ${err}`);
         }
       });
 
       subscription.on('error', (error) => {
-        this.logger.error(`Error en suscripción ${subscriptionName}: ${error.message}`);
+        this.logger.error(
+          `Error en suscripción ${subscriptionName}: ${error.message}`
+        );
       });
 
       this.subscriptions.push(subscription);
