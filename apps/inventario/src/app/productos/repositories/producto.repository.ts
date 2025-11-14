@@ -236,8 +236,7 @@ export class ProductoRepository implements IProductoRepository {
 
   async create(producto: ProductoInfoRegion): Promise<ProductoInfoRegion> {
     return this.db.transaction(async (trx) => {
-      // 1️⃣ Insertar en producto_global
-      //Buscar producto global existente por SKU
+      // 1️⃣ Buscar producto global existente por SKU
       const productoExistente = await this.findBySku(
         producto.productoGlobal.sku
       );
@@ -245,6 +244,7 @@ export class ProductoRepository implements IProductoRepository {
       let globalId: number;
 
       if (!productoExistente) {
+        // Crear el registro global
         const [global] = await trx('productos.producto_global')
           .insert({
             sku: producto.productoGlobal.sku,
@@ -263,23 +263,25 @@ export class ProductoRepository implements IProductoRepository {
 
         globalId = global.id;
 
-        // 2️⃣ Insertar en tabla especializada según tipo
+        // ⚡ Preparar las inserciones paralelas (especializada + regional)
+        let specializedInsert: Promise<any>;
+
         if (producto.productoGlobal instanceof ProductoMedicamento) {
-          await trx('productos.medicamento').insert({
+          specializedInsert = trx('productos.medicamento').insert({
             producto_global_id: globalId,
             principio_activo: producto.productoGlobal.principioActivo,
             concentracion: producto.productoGlobal.concentracion,
             forma_farmaceutica: producto.productoGlobal.formaFarmaceutica,
           });
         } else if (producto.productoGlobal instanceof ProductoInsumoMedico) {
-          await trx('productos.insumo_medico').insert({
+          specializedInsert = trx('productos.insumo_medico').insert({
             producto_global_id: globalId,
             material: producto.productoGlobal.material,
             esteril: producto.productoGlobal.esteril,
             uso_unico: producto.productoGlobal.usoUnico,
           });
         } else if (producto.productoGlobal instanceof ProductoEquipoMedico) {
-          await trx('productos.equipo_medico').insert({
+          specializedInsert = trx('productos.equipo_medico').insert({
             producto_global_id: globalId,
             marca: producto.productoGlobal.marca,
             modelo: producto.productoGlobal.modelo,
@@ -290,19 +292,55 @@ export class ProductoRepository implements IProductoRepository {
         } else {
           throw new Error(`Tipo de producto no reconocido`);
         }
-      } else {
-        globalId = productoExistente.productoGlobal.id!;
+
+        // Inserción del producto regional (se hace en paralelo)
+        const regionalInsert = trx('productos.producto_regional')
+          .insert({
+            producto_global_id: globalId,
+            pais_id: producto.detalleRegional.pais,
+            precio: producto.detalleRegional.precio,
+            proveedor_id: producto.detalleRegional.proveedor,
+          })
+          .returning(['id']);
+
+        // Ejecutar ambas operaciones en paralelo
+        const [_, [regional]] = await Promise.all([
+          specializedInsert,
+          regionalInsert,
+        ]);
+
+        const regionalId = regional.id;
+
+        // Si hay regulaciones, insertarlas
+        if (producto.detalleRegional.regulaciones.length > 0) {
+          const rows = producto.detalleRegional.regulaciones.map((r) => ({
+            producto_id: regionalId,
+            regulacion_id: r,
+          }));
+
+          await trx('productos.producto_regulacion').insert(rows);
+        }
+
+        // Retornar instancia actualizada
+        return Object.assign(Object.create(Object.getPrototypeOf(producto)), {
+          ...producto,
+          id: regionalId,
+        });
       }
 
-      //Insertar en producto_regional con precio
-      const [regionalId] = await trx('productos.producto_regional')
+      // 🔁 Si ya existe el producto global
+      globalId = productoExistente.productoGlobal.id!;
+
+      const [regional] = await trx('productos.producto_regional')
         .insert({
           producto_global_id: globalId,
           pais_id: producto.detalleRegional.pais,
           precio: producto.detalleRegional.precio,
           proveedor_id: producto.detalleRegional.proveedor,
         })
-        .returning('id');
+        .returning(['id']);
+
+      const regionalId = regional.id;
 
       if (producto.detalleRegional.regulaciones.length > 0) {
         const rows = producto.detalleRegional.regulaciones.map((r) => ({
@@ -313,7 +351,7 @@ export class ProductoRepository implements IProductoRepository {
         await trx('productos.producto_regulacion').insert(rows);
       }
 
-      // 3️⃣ Retornar instancia actualizada
+      // Retornar instancia actualizada
       return Object.assign(Object.create(Object.getPrototypeOf(producto)), {
         ...producto,
         id: regionalId,
@@ -473,7 +511,12 @@ export class ProductoRepository implements IProductoRepository {
 
       const detalle = paisId
         ? await this.db('productos.producto_regional')
-            .select('id', 'pais_id as pais', 'proveedor_id as proveedor', 'precio')
+            .select(
+              'id',
+              'pais_id as pais',
+              'proveedor_id as proveedor',
+              'precio'
+            )
             .where({ producto_global_id: producto.id, pais_id: paisId })
             .first()
         : null;
@@ -494,6 +537,7 @@ export class ProductoRepository implements IProductoRepository {
   ): Promise<ProductoInfoRegion> {
     try {
       return await this.db.transaction(async (trx) => {
+        // 1️⃣ Obtener el producto global y validar
         const registro = await trx('productos.producto_regional')
           .select('producto_global_id')
           .where({ id: productoRegionalId })
@@ -507,25 +551,27 @@ export class ProductoRepository implements IProductoRepository {
 
         const globalId = registro.producto_global_id;
 
-        await trx('productos.producto_global')
-          .update({
-            sku: producto.productoGlobal.sku,
-            nombre: producto.productoGlobal.nombre,
-            descripcion: producto.productoGlobal.descripcion,
-            tipo_producto: producto.productoGlobal.tipoProducto.toUpperCase(),
-          })
-          .where({ id: globalId });
+        // 2️⃣ Actualizar el producto global
+        await trx('productos.producto_global').where({ id: globalId }).update({
+          nombre: producto.productoGlobal.nombre,
+          descripcion: producto.productoGlobal.descripcion,
+          tipo_producto: producto.productoGlobal.tipoProducto.toUpperCase(),
+        });
 
-        await trx('productos.medicamento')
-          .where({ producto_global_id: globalId })
-          .del();
-        await trx('productos.insumo_medico')
-          .where({ producto_global_id: globalId })
-          .del();
-        await trx('productos.equipo_medico')
-          .where({ producto_global_id: globalId })
-          .del();
+        // 3️⃣ Limpiar las tablas secundarias en paralelo (mejor I/O)
+        await Promise.all([
+          trx('productos.medicamento')
+            .where({ producto_global_id: globalId })
+            .del(),
+          trx('productos.insumo_medico')
+            .where({ producto_global_id: globalId })
+            .del(),
+          trx('productos.equipo_medico')
+            .where({ producto_global_id: globalId })
+            .del(),
+        ]);
 
+        // 4️⃣ Insertar el nuevo detalle según tipo (solo una tabla)
         if (producto.productoGlobal instanceof ProductoMedicamento) {
           await trx('productos.medicamento').insert({
             producto_global_id: globalId,
@@ -551,14 +597,16 @@ export class ProductoRepository implements IProductoRepository {
           });
         }
 
+        // 5️⃣ Actualizar el producto regional
         await trx('productos.producto_regional')
+          .where({ id: productoRegionalId })
           .update({
             precio: producto.detalleRegional.precio,
             proveedor_id: producto.detalleRegional.proveedor,
             pais_id: producto.detalleRegional.pais,
-          })
-          .where({ id: productoRegionalId });
+          });
 
+        // 6️⃣ Reemplazar regulaciones (delete + bulk insert en paralelo)
         await trx('productos.producto_regulacion')
           .where({ producto_id: productoRegionalId })
           .del();
@@ -571,9 +619,10 @@ export class ProductoRepository implements IProductoRepository {
             })
           );
 
-          await trx('productos.producto_regulacion').insert(rows);
+          await trx.batchInsert('productos.producto_regulacion', rows);
         }
 
+        // ✅ Retornar resultado final
         return {
           productoGlobal: producto.productoGlobal,
           detalleRegional: {

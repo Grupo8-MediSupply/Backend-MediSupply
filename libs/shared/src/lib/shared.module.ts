@@ -6,10 +6,12 @@ import { HttpManagerService } from './http/http-manager.service';
 import { HttpModule } from '@nestjs/axios';
 import { AuthModule } from './auth/auth.module';
 import { JwtReadGuard } from './auth/guards/jwt-auth.guard';
+import { AuditInterceptor } from './interceptors/audit.interceptor';
+import { MediSupplyMessagingPubsubModule } from '@medi-supply/messaging-pubsub';
 
 @Global()
 @Module({
-  imports: [HttpModule, AuthModule],
+  imports: [HttpModule, AuthModule, MediSupplyMessagingPubsubModule],
   providers: [
     HttpManagerService,
     {
@@ -23,6 +25,10 @@ import { JwtReadGuard } from './auth/guards/jwt-auth.guard';
     {
       provide: APP_GUARD,
       useClass: JwtReadGuard, // 🔐 Todos los endpoints protegidos globalmente
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
   ],
   exports: [HttpManagerService, AuthModule],
