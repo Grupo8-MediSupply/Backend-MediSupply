@@ -12,12 +12,16 @@ export class AuthAuditStrategy implements AuditStrategy {
     const {
       response,
       action,
+      module,
       body: { email },
       ip,
       userId,
+      timestamp,
     } = auditData;
 
     const event = {
+      module,
+      timestamp,
       response: {
         status: response?.access_token ? 'SUCCESS' : 'FAILED',
       },
@@ -25,6 +29,7 @@ export class AuthAuditStrategy implements AuditStrategy {
       email,
       ip,
       userId,
+      severity: response?.access_token ? 'BAJA' : 'ALTA',
     };
 
     await this.pubSub.publish('auditoria', event);
@@ -36,9 +41,11 @@ export class ProductAuditStrategy implements AuditStrategy {
   constructor(private readonly pubSub: PubSubService) {}
 
   async handle(auditData: any) {
-    const { response, ip, email, action, timestamp, userId } = auditData;
+    const { response, ip, email, action, timestamp, userId, module } =
+      auditData;
 
     const event = {
+      module,
       timestamp,
       action,
       email,
@@ -51,15 +58,16 @@ export class ProductAuditStrategy implements AuditStrategy {
   }
 }
 
-
 @Injectable()
 export class GenericAuditStrategy implements AuditStrategy {
   constructor(private readonly pubSub: PubSubService) {}
 
   async handle(auditData: any) {
-    const { response, ip, email, action, timestamp, userId } = auditData;
+    const { response, ip, email, action, timestamp, userId, module } =
+      auditData;
 
     const event = {
+      module,
       timestamp,
       action,
       email,
