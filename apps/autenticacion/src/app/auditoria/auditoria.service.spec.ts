@@ -4,10 +4,13 @@ import { Auditoria } from '@medi-supply/perfiles-dm';
 
 describe('AuditoriaService', () => {
   let service: AuditoriaService;
-  let mockRepo: { guardarAuditoria: jest.Mock };
+  let mockRepo: { guardarAuditoria: jest.Mock; listarAuditorias: jest.Mock };
 
   beforeEach(async () => {
-    mockRepo = { guardarAuditoria: jest.fn() };
+    mockRepo = {
+      guardarAuditoria: jest.fn(),
+      listarAuditorias: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -21,25 +24,51 @@ describe('AuditoriaService', () => {
 
   afterEach(() => jest.resetAllMocks());
 
-  it('crearAuditoria - delega en el repositorio (AAA)', async () => {
-    // Arrange
-    const audit: Auditoria = { id: 'a1', action: 'test', module: 'm', createdAt: new Date() } as any;
-    (mockRepo.guardarAuditoria as jest.Mock).mockResolvedValue(undefined);
+  it('crearAuditoria delega en el repositorio', async () => {
+    const audit = new Auditoria({
+      accion: 'TEST',
+      email: 'user@example.com',
+      ip: '127.0.0.1',
+      detalles: {},
+      fecha: new Date(),
+    });
+    mockRepo.guardarAuditoria.mockResolvedValue(undefined);
 
-    // Act
     await service.crearAuditoria(audit);
 
-    // Assert
     expect(mockRepo.guardarAuditoria).toHaveBeenCalledWith(audit);
   });
 
-  it('crearAuditoria - propaga errores del repositorio (AAA)', async () => {
-    // Arrange
-    const audit: Auditoria = { id: 'a2', action: 'fail', module: 'm', createdAt: new Date() } as any;
-    (mockRepo.guardarAuditoria as jest.Mock).mockRejectedValue(new Error('DB fail'));
+  it('crearAuditoria propaga errores del repositorio', async () => {
+    const audit = new Auditoria({
+      accion: 'FAIL',
+      email: 'user@example.com',
+      ip: '127.0.0.1',
+      detalles: {},
+      fecha: new Date(),
+    });
+    mockRepo.guardarAuditoria.mockRejectedValue(new Error('DB fail'));
 
-    // Act & Assert
     await expect(service.crearAuditoria(audit)).rejects.toThrow('DB fail');
     expect(mockRepo.guardarAuditoria).toHaveBeenCalledWith(audit);
+  });
+
+  it('listarAuditorias convierte fechas y delega en el repositorio', async () => {
+    const filtros = {
+      usuario: 'admin',
+      accion: 'LOGIN',
+      fechaDesde: '2024-01-01',
+      fechaHasta: '2024-01-31',
+    };
+    mockRepo.listarAuditorias.mockResolvedValue([]);
+
+    await service.listarAuditorias(filtros as any);
+
+    expect(mockRepo.listarAuditorias).toHaveBeenCalledWith({
+      usuario: 'admin',
+      accion: 'LOGIN',
+      fechaDesde: new Date('2024-01-01'),
+      fechaHasta: new Date('2024-01-31'),
+    });
   });
 });
