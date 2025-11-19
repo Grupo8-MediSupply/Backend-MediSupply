@@ -1,6 +1,7 @@
 import { IProveedorRepository, Proveedor } from '@medi-supply/perfiles-dm';
 import { Inject, InternalServerErrorException } from '@nestjs/common';
 import { Knex } from 'knex';
+import { HistorialCompra, HistorialCompraFiltros } from '@medi-supply/perfiles-dm';
 
 export class ProveedorRepository implements IProveedorRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
@@ -123,4 +124,45 @@ export class ProveedorRepository implements IProveedorRepository {
       throw new InternalServerErrorException('Error al buscar proveedores.');
     }
   }
+
+  async obtenerHistorialCompras(filtros: HistorialCompraFiltros): Promise<HistorialCompra[]> {
+    const rows = await this.db('compras.compra as c') // Ajusta el nombre real de la tabla
+      .select(
+        'c.proveedor_id as proveedorId',
+        'c.producto as producto',
+        'c.cantidad as cantidad',
+        'c.valor_total as valorTotal',
+        'c.fecha_compra as fechaCompra',
+        'c.pais_id as paisId',
+      )
+      .modify((qb) => {
+        if (filtros.proveedorId) {
+          qb.andWhere('c.proveedor_id', filtros.proveedorId);
+        }
+        if (filtros.paisId) {
+          qb.andWhere('c.pais_id', filtros.paisId);
+        }
+        if (filtros.fechaInicio) {
+          const inicio = new Date(filtros.fechaInicio);
+          inicio.setHours(0, 0, 0, 0);
+          qb.andWhere('c.fecha_compra', '>=', inicio);
+        }
+        if (filtros.fechaFin) {
+          const fin = new Date(filtros.fechaFin);
+          fin.setHours(23, 59, 59, 999);
+          qb.andWhere('c.fecha_compra', '<=', fin);
+        }
+      })
+      .orderBy('c.fecha_compra', 'desc');
+
+    return rows.map((row) => ({
+      proveedorId: row.proveedorId,
+      producto: row.producto,
+      cantidad: Number(row.cantidad),
+      valorTotal: Number(row.valorTotal),
+      fechaCompra: new Date(row.fechaCompra),
+      paisId: row.paisId ? Number(row.paisId) : undefined,
+    }));
+  }
+  
 }
