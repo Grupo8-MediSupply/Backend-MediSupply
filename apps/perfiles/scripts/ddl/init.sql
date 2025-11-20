@@ -102,7 +102,8 @@ CREATE TABLE IF NOT EXISTS usuarios.usuario (
     rol_id BIGINT REFERENCES seguridad.rol(id),
     pais_id BIGINT REFERENCES geografia.pais(id),
     created_at TIMESTAMP DEFAULT now(),
-    updated_at TIMESTAMP DEFAULT now()
+    updated_at TIMESTAMP DEFAULT now(),
+    activo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TRIGGER trg_usuario_updated

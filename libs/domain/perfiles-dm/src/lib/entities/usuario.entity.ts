@@ -12,6 +12,7 @@ interface UsuarioProps {
   createdAt?: Date;
   updatedAt?: Date;
   ubicacion?: Ubicacion;
+  activo?: boolean;
 }
 
 export class Usuario extends BaseEntity<string> {
@@ -22,6 +23,7 @@ export class Usuario extends BaseEntity<string> {
   readonly identificacion: string;
   readonly tipoIdentificacion: number;
   readonly ubicacion?: Ubicacion;
+  readonly activo?: boolean;
 
   constructor(props: UsuarioProps) {
     super({
@@ -37,5 +39,6 @@ export class Usuario extends BaseEntity<string> {
     this.identificacion = props.identificacion;
     this.tipoIdentificacion = props.tipoIdentificacion;
     this.ubicacion = props.ubicacion;
+    this.activo = props.activo;
   }
 }
