@@ -23,7 +23,7 @@ export class Usuario extends BaseEntity<string> {
   readonly identificacion: string;
   readonly tipoIdentificacion: number;
   readonly ubicacion?: Ubicacion;
-  readonly activo?: boolean;
+  public activo?: boolean;
 
   constructor(props: UsuarioProps) {
     super({

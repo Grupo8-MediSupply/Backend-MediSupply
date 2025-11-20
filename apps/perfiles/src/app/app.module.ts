@@ -11,6 +11,7 @@ import { VisitasModule } from './visitas/visitas.module';
 import { PaisesModule } from './paises/paises.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { MediSupplyStorageServiceModule } from '@medi-supply/storage-service';
+import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { MediSupplyStorageServiceModule } from '@medi-supply/storage-service';
     PaisesModule,
     ConfiguracionModule,
     MediSupplyStorageServiceModule,
+    UsuariosModule,
   ],
   controllers: [AppController],
   providers: [],
