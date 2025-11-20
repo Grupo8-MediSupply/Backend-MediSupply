@@ -45,6 +45,7 @@ describe('AppService (unit)', () => {
       password: hashed,
       rolId: 'admin',
       paisId: 'CO',
+      activo: true,
     } as unknown as Usuario;
 
     test('lanza UnauthorizedException si no existe el usuario', async () => {
