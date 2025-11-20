@@ -1,7 +1,7 @@
 import { DomainException } from "../errors/domain.exception";
 
 export class Email {
-  private readonly value: string;
+  public readonly value: string;
 
   constructor(value: string) {
     if (!value) throw new Error('El email no puede ser nulo o vacío.');

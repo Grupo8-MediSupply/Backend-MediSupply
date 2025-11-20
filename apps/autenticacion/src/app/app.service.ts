@@ -7,7 +7,6 @@ import { UsuarioConsultaDto } from './dtos/response/usuario-consulta.dto';
 import { JwtPayloadDto } from '@medi-supply/shared';
 import { ConfigService } from '@nestjs/config';
 
-
 @Injectable()
 export class AppService {
   constructor(
@@ -17,27 +16,30 @@ export class AppService {
     private configService: ConfigService
   ) {}
 
-
-
-  async validateUser(email: string, password: string): Promise<UsuarioConsultaDto> {
-    const user: Usuario | null = await this.usuariosRepository.findByEmail(email);
+  async validateUser(
+    email: string,
+    password: string
+  ): Promise<UsuarioConsultaDto> {
+    const user: Usuario | null = await this.usuariosRepository.findByEmail(
+      email
+    );
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
     if (!user.password)
       throw new UnauthorizedException(
         'El usuario no tiene contraseña registrada'
       );
 
-
     const passwordValid = await bcrypt.compare(password, user.password);
     if (!passwordValid)
       throw new UnauthorizedException('Contraseña incorrecta');
 
+    if (!user.activo) throw new UnauthorizedException('Usuario inactivo');
     const { password: _, ...userData } = user;
     return {
       id: userData.id,
       email: userData.email.Value,
       role: userData.rolId,
-      pais: userData.paisId
+      pais: userData.paisId,
     };
   }
 
@@ -47,7 +49,7 @@ export class AppService {
   ): Promise<{ access_token: string }> {
     const user = await this.validateUser(email, password);
 
-    const payload : JwtPayloadDto = {
+    const payload: JwtPayloadDto = {
       sub: user.id,
       email: user.email,
       role: user.role,
@@ -57,19 +59,15 @@ export class AppService {
 
     const algorithm = isProd ? 'RS256' : 'HS256';
 
-    const token = await this.jwtService.signAsync(payload,{
-
-
+    const token = await this.jwtService.signAsync(payload, {
       header: {
-                kid: 'mymainkey-1', // 🔑 aquí pones el mismo que en tu JWKS
-                alg: algorithm,
-              }
+        kid: 'mymainkey-1', // 🔑 aquí pones el mismo que en tu JWKS
+        alg: algorithm,
+      },
     });
 
     return {
       access_token: token,
     };
   }
-
-
 }
