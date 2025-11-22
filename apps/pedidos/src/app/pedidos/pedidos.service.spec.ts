@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EstadoOrden, Orden, ProductoOrden, RepartoOrden, Vehiculo } from '@medi-supply/ordenes-dm';
 import { PedidosService } from './pedidos.service';
 import { ObtenerPedidosQueryDto } from './dtos/filtro-obtener-ordenes.dto';
@@ -157,15 +158,10 @@ describe('PedidosService - ActualizarOrden', () => {
 });
 
 describe('PedidosService - ObtenerOrdenesParaEntregar', () => {
-  type MockHttp = { post: jest.Mock };
-  type MockConfig = { get: jest.Mock };
-  type MockRepository = { actualizarOrden?: jest.Mock; obtenerOrdenesParaEntregar?: jest.Mock; obtenerVehiculoMasCercano?: jest.Mock };
-  type MockRutas = { generarRuta?: jest.Mock };
-
-  let mockHttpCall: MockHttp;
-  let mockConfig: MockConfig;
-  let mockRepository: MockRepository;
-  let mockRutasService: MockRutas;
+  let mockHttpCall: any;
+  let mockConfig: any;
+  let mockRepository: any;
+  let mockRutasService: any;
   let service: PedidosService;
 
   beforeEach(() => {
@@ -303,15 +299,10 @@ describe('PedidosService - ObtenerOrdenesParaEntregar', () => {
 });
 
 describe('PedidosService - GenerarRutasDeReparto', () => {
-  type MockHttp2 = { post: jest.Mock };
-  type MockConfig2 = { get: jest.Mock };
-  type MockRepository2 = { actualizarOrden?: jest.Mock; obtenerOrdenesParaEntregar?: jest.Mock; obtenerVehiculoMasCercano?: jest.Mock };
-  type MockRutas2 = { generarRuta?: jest.Mock };
-
-  let mockHttpCall: MockHttp2;
-  let mockConfig: MockConfig2;
-  let mockRepository: MockRepository2;
-  let mockRutasService: MockRutas2;
+  let mockHttpCall: any;
+  let mockConfig: any;
+  let mockRepository: any;
+  let mockRutasService: any;
   let service: PedidosService;
   const repartoOrdenes: RepartoOrden[] = [
     {
@@ -431,6 +422,51 @@ describe('PedidosService - GenerarRutasDeReparto', () => {
     expect(result).toBeDefined();
   });
 
+  it('debería generar rutas y llamar a guardarRutaDeReparto y actualizarOrden', async () => {
+    // Ambos órdenes no tienen ruta inicialmente
+    mockRepository.buscarOrdenPorId.mockResolvedValueOnce({ id: 'orden-1' });
+    mockRepository.buscarOrdenPorId.mockResolvedValueOnce({ id: 'orden-2' });
+
+    // generarRuta devuelve datos válidos
+    mockRutasService.generarRuta.mockResolvedValueOnce({
+      distancia: 1234,
+      duracion: { seconds: 600 },
+      polilinea: 'poly',
+      legs: [],
+    });
+
+    // guardarRutaDeReparto devuelve un id de ruta
+    mockRepository.guardarRutaDeReparto.mockResolvedValueOnce('ruta-1');
+
+    const result = await service.GenerarRutasDeReparto(repartoOrdenes);
+
+    expect(mockRepository.guardarRutaDeReparto).toHaveBeenCalledTimes(1);
+    expect(mockRepository.guardarRutaDeReparto).toHaveBeenCalledWith('vehiculo-1', expect.any(Object));
+
+    // Se debe actualizar cada orden del grupo con estado ENVIADO y ruta_id
+    expect(mockRepository.actualizarOrden).toHaveBeenCalled();
+  const actualizarCalls = mockRepository.actualizarOrden.mock.calls.map((c: any[]) => c[0]);
+  expect(actualizarCalls).toEqual(expect.arrayContaining(['orden-1', 'orden-2']));
+
+    // El resultado debe contener la ruta generada con rutaId
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.some(r => (r as any).rutaId === 'ruta-1')).toBe(true);
+  });
+
+  it('no debe agregar rutas cuando rutasService.generarRuta devuelve null', async () => {
+    mockRepository.buscarOrdenPorId.mockResolvedValue({ id: 'orden-1' });
+    // generarRuta devuelve null -> sin rutas generadas
+    mockRutasService.generarRuta.mockResolvedValueOnce(null);
+    mockRepository.buscarRutaPorOrdenId = jest.fn().mockResolvedValue(null);
+
+    const result = await service.GenerarRutasDeReparto(repartoOrdenes);
+
+    // No se guardó ruta y no se actualizaron órdenes
+    expect(mockRepository.guardarRutaDeReparto).not.toHaveBeenCalled();
+    expect(mockRepository.actualizarOrden).not.toHaveBeenCalled();
+    expect(result).toBeDefined();
+  });
+
   it('debería retornar array vacío cuando todas las órdenes ya tienen ruta', async () => {
     mockRepository.buscarOrdenPorId.mockResolvedValue({
       id: 'orden-1',
@@ -456,15 +492,10 @@ describe('PedidosService - GenerarRutasDeReparto', () => {
 });
 
 describe('PedidosService - reducirStockProductos', () => {
-  type MockHttp3 = { post: jest.Mock };
-  type MockConfig3 = { get: jest.Mock };
-  type MockRepository3 = { actualizarOrden?: jest.Mock; obtenerOrdenesParaEntregar?: jest.Mock };
-  type MockRutas3 = { generarRuta?: jest.Mock };
-
-  let mockHttpCall: MockHttp3;
-  let mockConfig: MockConfig3;
-  let mockRepository: MockRepository3;
-  let mockRutasService: MockRutas3;
+  let mockHttpCall: any;
+  let mockConfig: any;
+  let mockRepository: any;
+  let mockRutasService: any;
   let service: PedidosService;
   const productosOrden: ProductoOrden[] = [
     {
