@@ -22,6 +22,9 @@
   ],
   "references": [
     {
+      "path": "../../libs/domain/core/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/domain/bodegas-dm/tsconfig.lib.json"
     },
     {

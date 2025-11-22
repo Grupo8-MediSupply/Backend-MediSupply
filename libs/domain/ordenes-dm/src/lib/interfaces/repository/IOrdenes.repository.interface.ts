@@ -1,5 +1,5 @@
 import { Ubicacion } from "@medi-supply/core";
-import { BodegaOrigen, Orden, OrdenEntrega } from "src/lib/entities/orden.entity";
+import { BodegaOrigen, InformacionGeneralOrden, Orden, OrdenEntrega } from "src/lib/entities/orden.entity";
 import { Vehiculo } from "src/lib/entities/vehiculo.entity";
 import { RutaGenerada, RutaVehiculo } from "../vo/RepartoOrden.interface";
 import { HistorialVenta } from "../vo/historial-venta.interfaces";
@@ -17,6 +17,7 @@ export interface IOrdenesRepository {
     vendedorId: string,
     clienteId: string
   ): Promise<HistorialVenta[]>;
+  obtenerOrdenesPorCliente(clienteId: string,filtros:any): Promise<InformacionGeneralOrden[]>;
 }
 
 export interface FiltrosEntrega {

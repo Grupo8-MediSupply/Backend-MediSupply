@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -12,7 +12,7 @@ async function bootstrap() {
   // 🔹 Creamos la app con FastifyAdapter
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    new FastifyAdapter()
   );
 
   // 🌍 Habilitar CORS con Fastify
@@ -27,6 +27,15 @@ async function bootstrap() {
     credentials: true, // si manejas cookies o headers auth
   });
 
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true, // convierte y construye el DTO desde query/body
+      whitelist: true, // opcional: borra props no definidas en DTO
+      forbidNonWhitelisted: false, // true lanza 400 si vienen props extra
+      transformOptions: { enableImplicitConversion: true }, // convierte tipos implícitamente
+    })
+  );
+
   // 🔹 Prefijo global
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
@@ -40,7 +49,7 @@ async function bootstrap() {
 
   // 🔹 Logging
   Logger.log(
-    `🚀 Application is running on: ${await app.getUrl()}/${globalPrefix}`,
+    `🚀 Application is running on: ${await app.getUrl()}/${globalPrefix}`
   );
 }
 

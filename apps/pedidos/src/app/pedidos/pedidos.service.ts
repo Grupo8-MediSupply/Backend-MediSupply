@@ -3,6 +3,7 @@ import { HttpManagerService } from '@medi-supply/shared';
 import {
   EstadoOrden,
   FiltrosEntrega,
+  InformacionGeneralOrden,
   type IOrdenesRepository,
   Orden,
   ProductoOrden,
@@ -12,6 +13,7 @@ import {
 } from '@medi-supply/ordenes-dm';
 import { ConfigService } from '@nestjs/config';
 import { RepartoOrden } from '@medi-supply/ordenes-dm';
+import { ObtenerPedidosQueryDto } from './dtos/filtro-obtener-ordenes.dto';
 
 @Injectable()
 export class PedidosService {
@@ -215,6 +217,10 @@ export class PedidosService {
 
     // 4️⃣ Retornar las rutas generadas (podrías también combinar con las rutasDesdeDb si quieres)
     return [...rutasGeneradas, ...rutasDesdeDb];
+  }
+
+  async ObtenerPedidosPorCliente(clienteId: string, query: ObtenerPedidosQueryDto): Promise<InformacionGeneralOrden[]> {
+    return this.ordenesRepository.obtenerOrdenesPorCliente(clienteId, query);
   }
 }
 

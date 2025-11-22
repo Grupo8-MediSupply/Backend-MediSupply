@@ -56,3 +56,23 @@ export interface ClienteEntrega{
     nombre: string;
     ubicacion: Ubicacion;
 }
+
+export interface InformacionGeneralOrden{
+    id: string;
+    estado: string;
+    cliente: ClienteEntrega;
+    vendedor?: string;
+    total: number;
+    created_at: Date;
+}
+
+
+
+
+export enum EstadoOrden {
+  RECIBIDO = 'RECIBIDO',
+  PROCESANDO = 'PROCESANDO',
+  ENVIADO = 'ENVIADO',
+  COMPLETADO = 'COMPLETADO',
+  CANCELADO = 'CANCELADO',
+}
