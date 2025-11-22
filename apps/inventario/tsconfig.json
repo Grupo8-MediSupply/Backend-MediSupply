@@ -4,7 +4,13 @@
   "include": [],
   "references": [
     {
+      "path": "../../libs/domain/core"
+    },
+    {
       "path": "../../libs/domain/bodegas-dm"
+    },
+    {
+      "path": "../../libs/domain/ventas-dm"
     },
     {
       "path": "../../libs/messaging-pubsub"
@@ -14,9 +20,6 @@
     },
     {
       "path": "../../libs/domain/productos-dm"
-    },
-    {
-      "path": "../../libs/domain/ventas-dm"
     },
     {
       "path": "../../libs/shared"

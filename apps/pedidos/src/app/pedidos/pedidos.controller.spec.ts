@@ -2,16 +2,19 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PedidosController } from './pedidos.controller';
 import { PedidosService } from './pedidos.service';
 import type { JwtPayloadDto } from '@medi-supply/shared';
+import { ObtenerPedidosQueryDto } from './dtos/filtro-obtener-ordenes.dto';
 
 describe('PedidosController', () => {
   let controller: PedidosController;
   let mockPedidosService: {
     ObtenerOrdenesParaEntregar: jest.Mock<Promise<unknown[]>, [number, string | undefined, string | undefined]>;
+    ObtenerPedidosPorCliente: jest.Mock<Promise<unknown[]>, [string, ObtenerPedidosQueryDto | undefined]>;
   };
 
   beforeEach(async () => {
     mockPedidosService = {
       ObtenerOrdenesParaEntregar: jest.fn(),
+      ObtenerPedidosPorCliente: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -66,5 +69,28 @@ describe('PedidosController', () => {
 
     await expect(controller.obtenerOrdenesParaEntregar(undefined, undefined, jwt)).rejects.toThrow(err);
     expect(mockPedidosService.ObtenerOrdenesParaEntregar).toHaveBeenCalledWith(jwt.pais, undefined, undefined);
+  });
+
+  it('debe llamar a ObtenerPedidosPorCliente con jwt.sub y query y devolver resultado', async () => {
+    const jwt: JwtPayloadDto = { sub: 'cliente1', pais: 51, role: 2, email: 'c@d.com' } as JwtPayloadDto;
+  const query: ObtenerPedidosQueryDto = { page: 1, limit: 10 } as unknown as ObtenerPedidosQueryDto;
+    const expected = [{ id: 'p1' }, { id: 'p2' }] as unknown[];
+  mockPedidosService.ObtenerPedidosPorCliente.mockResolvedValueOnce(expected);
+
+  const res = await controller.obtenerPedidosPorCliente(query, jwt);
+
+  expect(mockPedidosService.ObtenerPedidosPorCliente).toHaveBeenCalledTimes(1);
+  expect(mockPedidosService.ObtenerPedidosPorCliente).toHaveBeenCalledWith(jwt.sub, query);
+  expect(res).toBe(expected);
+  });
+
+  it('propaga el error si ObtenerPedidosPorCliente falla', async () => {
+    const jwt: JwtPayloadDto = { sub: 'cliente2', pais: 51, role: 2, email: 'd@e.com' } as JwtPayloadDto;
+  const query: ObtenerPedidosQueryDto = { page: 2 } as unknown as ObtenerPedidosQueryDto;
+    const err = new Error('cliente-error');
+  mockPedidosService.ObtenerPedidosPorCliente.mockRejectedValueOnce(err);
+
+  await expect(controller.obtenerPedidosPorCliente(query, jwt)).rejects.toThrow(err);
+  expect(mockPedidosService.ObtenerPedidosPorCliente).toHaveBeenCalledWith(jwt.sub, query);
   });
 });
