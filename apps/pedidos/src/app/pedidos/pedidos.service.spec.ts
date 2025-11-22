@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EstadoOrden, Orden, ProductoOrden, RepartoOrden, Vehiculo } from '@medi-supply/ordenes-dm';
 import { PedidosService } from './pedidos.service';
+import { ObtenerPedidosQueryDto } from './dtos/filtro-obtener-ordenes.dto';
 
 // TypeScript
 describe('PedidosService - ActualizarOrden', () => {
@@ -377,6 +379,8 @@ describe('PedidosService - GenerarRutasDeReparto', () => {
       obtenerOrdenesParaEntregar: jest.fn(),
       findById: jest.fn(),
       buscarOrdenPorId: jest.fn(),
+  guardarRutaDeReparto: jest.fn().mockResolvedValue('ruta-guardada'),
+  buscarRutaPorOrdenId: jest.fn(),
     };
 
     mockRutasService = {
@@ -415,6 +419,51 @@ describe('PedidosService - GenerarRutasDeReparto', () => {
 
     const result = await service.GenerarRutasDeReparto(repartoOrdenes);
 
+    expect(result).toBeDefined();
+  });
+
+  it('debería generar rutas y llamar a guardarRutaDeReparto y actualizarOrden', async () => {
+    // Ambos órdenes no tienen ruta inicialmente
+    mockRepository.buscarOrdenPorId.mockResolvedValueOnce({ id: 'orden-1' });
+    mockRepository.buscarOrdenPorId.mockResolvedValueOnce({ id: 'orden-2' });
+
+    // generarRuta devuelve datos válidos
+    mockRutasService.generarRuta.mockResolvedValueOnce({
+      distancia: 1234,
+      duracion: { seconds: 600 },
+      polilinea: 'poly',
+      legs: [],
+    });
+
+    // guardarRutaDeReparto devuelve un id de ruta
+    mockRepository.guardarRutaDeReparto.mockResolvedValueOnce('ruta-1');
+
+    const result = await service.GenerarRutasDeReparto(repartoOrdenes);
+
+    expect(mockRepository.guardarRutaDeReparto).toHaveBeenCalledTimes(1);
+    expect(mockRepository.guardarRutaDeReparto).toHaveBeenCalledWith('vehiculo-1', expect.any(Object));
+
+    // Se debe actualizar cada orden del grupo con estado ENVIADO y ruta_id
+    expect(mockRepository.actualizarOrden).toHaveBeenCalled();
+  const actualizarCalls = mockRepository.actualizarOrden.mock.calls.map((c: any[]) => c[0]);
+  expect(actualizarCalls).toEqual(expect.arrayContaining(['orden-1', 'orden-2']));
+
+    // El resultado debe contener la ruta generada con rutaId
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.some(r => (r as any).rutaId === 'ruta-1')).toBe(true);
+  });
+
+  it('no debe agregar rutas cuando rutasService.generarRuta devuelve null', async () => {
+    mockRepository.buscarOrdenPorId.mockResolvedValue({ id: 'orden-1' });
+    // generarRuta devuelve null -> sin rutas generadas
+    mockRutasService.generarRuta.mockResolvedValueOnce(null);
+    mockRepository.buscarRutaPorOrdenId = jest.fn().mockResolvedValue(null);
+
+    const result = await service.GenerarRutasDeReparto(repartoOrdenes);
+
+    // No se guardó ruta y no se actualizaron órdenes
+    expect(mockRepository.guardarRutaDeReparto).not.toHaveBeenCalled();
+    expect(mockRepository.actualizarOrden).not.toHaveBeenCalled();
     expect(result).toBeDefined();
   });
 
@@ -511,5 +560,76 @@ describe('PedidosService - reducirStockProductos', () => {
     mockHttpCall.post.mockRejectedValue(new Error('HTTP error'));
 
     await expect(service.reducirStockProductos(productosOrden)).rejects.toThrow('HTTP error');
+  });
+});
+
+describe('PedidosService - ObtenerPedidosPorCliente', () => {
+  // Using local typed mocks to satisfy lint rules
+  type MockHttp = { post: jest.Mock };
+  type MockConfig = { get: jest.Mock };
+  type MockRepository = { obtenerOrdenesPorCliente: jest.Mock };
+  type MockRutas = { generarRuta: jest.Mock };
+
+  let mockHttpCall: MockHttp;
+  let mockConfig: MockConfig;
+  let mockRepository: MockRepository;
+  let mockRutasService: MockRutas;
+  let service: PedidosService;
+
+  beforeEach(() => {
+    mockHttpCall = { post: jest.fn() };
+    mockConfig = { get: jest.fn() };
+    mockRepository = {
+      obtenerOrdenesPorCliente: jest.fn(),
+    };
+    mockRutasService = { generarRuta: jest.fn() };
+
+    // Cast constructor to accept our minimal mocks (matches earlier pattern)
+    const PedidosServiceCtor = PedidosService as unknown as new (
+      httpCall: MockHttp,
+      config: MockConfig,
+      repo: MockRepository,
+      rutasService: MockRutas
+    ) => PedidosService;
+
+    service = new PedidosServiceCtor(mockHttpCall, mockConfig, mockRepository, mockRutasService);
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('debe retornar órdenes del repositorio cuando existen', async () => {
+    const clienteId = 'cliente-123';
+  const query: ObtenerPedidosQueryDto = { page: 0, limit: 10 };
+    const expected = [{ id: 'o1' }, { id: 'o2' }];
+
+    mockRepository.obtenerOrdenesPorCliente.mockResolvedValueOnce(expected);
+
+    const res = await service.ObtenerPedidosPorCliente(clienteId, query);
+
+    expect(mockRepository.obtenerOrdenesPorCliente).toHaveBeenCalledWith(clienteId, query);
+    expect(res).toBe(expected);
+  });
+
+  it('debe retornar array vacío cuando no hay órdenes', async () => {
+    const clienteId = 'cliente-empty';
+  const query: ObtenerPedidosQueryDto = { page: 1, limit: 5 };
+
+    mockRepository.obtenerOrdenesPorCliente.mockResolvedValueOnce([]);
+
+    const res = await service.ObtenerPedidosPorCliente(clienteId, query);
+
+    expect(mockRepository.obtenerOrdenesPorCliente).toHaveBeenCalledWith(clienteId, query);
+    expect(res).toEqual([]);
+  });
+
+  it('debe propagar errores del repositorio', async () => {
+    const clienteId = 'cliente-err';
+  const query: ObtenerPedidosQueryDto = { page: 0 };
+
+    mockRepository.obtenerOrdenesPorCliente.mockRejectedValueOnce(new Error('DB error'));
+
+    await expect(service.ObtenerPedidosPorCliente(clienteId, query)).rejects.toThrow('DB error');
   });
 });

@@ -1,14 +1,38 @@
 import {
+  FiltrosEntrega,
   HistorialVenta,
+  InformacionGeneralOrden,
   IOrdenesRepository,
   Orden,
+  OrdenEntrega,
   ProductoOrden,
+  RutaGenerada,
+  Vehiculo,
 } from '@medi-supply/ordenes-dm';
 import { Inject } from '@nestjs/common';
 import { Knex } from 'knex';
+import { Ubicacion } from 'libs/domain/core/src';
 
 export class OrdenesRepository implements IOrdenesRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+  obtenerOrdenesParaEntregar(filtros: FiltrosEntrega): Promise<OrdenEntrega[]> {
+    throw new Error('Method not implemented.');
+  }
+  obtenerVehiculoMasCercano(bodegas: Ubicacion[]): Promise<Vehiculo | null> {
+    throw new Error('Method not implemented.');
+  }
+  guardarRutaDeReparto(vehiculoId: string, ruta: RutaGenerada): Promise<string> {
+    throw new Error('Method not implemented.');
+  }
+  buscarOrdenPorId(ordenId: string): Promise<Orden | null> {
+    throw new Error('Method not implemented.');
+  }
+  buscarRutaPorOrdenId(ordenId: string): Promise<RutaGenerada | null> {
+    throw new Error('Method not implemented.');
+  }
+  obtenerOrdenesPorCliente(clienteId: string): Promise<InformacionGeneralOrden[]> {
+    throw new Error('Method not implemented.');
+  }
   actualizarOrden(id: string, cambios: Partial<Orden>): Promise<Orden> {
     throw new Error('Method not implemented.');
   }

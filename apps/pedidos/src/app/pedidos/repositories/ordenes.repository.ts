@@ -9,6 +9,7 @@ import {
   RutaVehiculo,
   Vehiculo,
   HistorialVenta,
+  InformacionGeneralOrden,
 } from '@medi-supply/ordenes-dm';
 import { Inject } from '@nestjs/common';
 import { Knex } from 'knex';
@@ -16,6 +17,57 @@ import { DomainException, Ubicacion } from '@medi-supply/core';
 
 export class OrdenesRepository implements IOrdenesRepository {
   constructor(@Inject('KNEX_CONNECTION') private readonly db: Knex) {}
+
+  async obtenerOrdenesPorCliente(
+    clienteId: string,
+    filtros: any
+  ): Promise<InformacionGeneralOrden[]> {
+
+  const { state, page = 0, limit = 25 } = filtros ?? {};
+
+    const offset = page * limit;
+
+    const query = this.db('pedidos.orden')
+      .select(
+        'id',
+        'estado',
+        'cliente_id',
+        'vendedor_id',
+        'total',
+        'created_at'
+      )
+      .where('cliente_id', clienteId);
+
+    if (state) {
+      query.andWhere('estado', state);
+    }
+
+    const ordenesRows = await query
+      .orderBy('created_at', 'desc')
+      .limit(limit)
+      .offset(offset);
+
+    const totalRow = await this.db('pedidos.orden')
+      .where('cliente_id', clienteId)
+      .modify((qb) => {
+        if (state) qb.andWhere('estado', state);
+      })
+      .count<{ total: string }>('id as total')
+      .first();
+
+    const total = Number(totalRow?.total ?? 0);
+
+    const ordenes: InformacionGeneralOrden[] = ordenesRows.map((row) => ({
+      id: row.id,
+      estado: row.estado,
+      cliente: row.cliente_id,
+      vendedor: row.vendedor_id ?? undefined,
+      total: Number(row.total ?? 0),
+      created_at: new Date(row.created_at),
+    }));
+    return ordenes;
+  }
+
   async buscarRutaPorOrdenId(ordenId: string): Promise<RutaGenerada | null> {
     const consulta = await this.db('logistica.rutas as r')
       .join('pedidos.orden as o', 'o.ruta_id', 'r.id')
