@@ -1,5 +1,6 @@
 import { EstadoOrden, Orden, ProductoOrden, RepartoOrden, Vehiculo } from '@medi-supply/ordenes-dm';
 import { PedidosService } from './pedidos.service';
+import { ObtenerPedidosQueryDto } from './dtos/filtro-obtener-ordenes.dto';
 
 // TypeScript
 describe('PedidosService - ActualizarOrden', () => {
@@ -156,10 +157,15 @@ describe('PedidosService - ActualizarOrden', () => {
 });
 
 describe('PedidosService - ObtenerOrdenesParaEntregar', () => {
-  let mockHttpCall: any;
-  let mockConfig: any;
-  let mockRepository: any;
-  let mockRutasService: any;
+  type MockHttp = { post: jest.Mock };
+  type MockConfig = { get: jest.Mock };
+  type MockRepository = { actualizarOrden?: jest.Mock; obtenerOrdenesParaEntregar?: jest.Mock; obtenerVehiculoMasCercano?: jest.Mock };
+  type MockRutas = { generarRuta?: jest.Mock };
+
+  let mockHttpCall: MockHttp;
+  let mockConfig: MockConfig;
+  let mockRepository: MockRepository;
+  let mockRutasService: MockRutas;
   let service: PedidosService;
 
   beforeEach(() => {
@@ -297,10 +303,15 @@ describe('PedidosService - ObtenerOrdenesParaEntregar', () => {
 });
 
 describe('PedidosService - GenerarRutasDeReparto', () => {
-  let mockHttpCall: any;
-  let mockConfig: any;
-  let mockRepository: any;
-  let mockRutasService: any;
+  type MockHttp2 = { post: jest.Mock };
+  type MockConfig2 = { get: jest.Mock };
+  type MockRepository2 = { actualizarOrden?: jest.Mock; obtenerOrdenesParaEntregar?: jest.Mock; obtenerVehiculoMasCercano?: jest.Mock };
+  type MockRutas2 = { generarRuta?: jest.Mock };
+
+  let mockHttpCall: MockHttp2;
+  let mockConfig: MockConfig2;
+  let mockRepository: MockRepository2;
+  let mockRutasService: MockRutas2;
   let service: PedidosService;
   const repartoOrdenes: RepartoOrden[] = [
     {
@@ -377,6 +388,8 @@ describe('PedidosService - GenerarRutasDeReparto', () => {
       obtenerOrdenesParaEntregar: jest.fn(),
       findById: jest.fn(),
       buscarOrdenPorId: jest.fn(),
+  guardarRutaDeReparto: jest.fn().mockResolvedValue('ruta-guardada'),
+  buscarRutaPorOrdenId: jest.fn(),
     };
 
     mockRutasService = {
@@ -443,10 +456,15 @@ describe('PedidosService - GenerarRutasDeReparto', () => {
 });
 
 describe('PedidosService - reducirStockProductos', () => {
-  let mockHttpCall: any;
-  let mockConfig: any;
-  let mockRepository: any;
-  let mockRutasService: any;
+  type MockHttp3 = { post: jest.Mock };
+  type MockConfig3 = { get: jest.Mock };
+  type MockRepository3 = { actualizarOrden?: jest.Mock; obtenerOrdenesParaEntregar?: jest.Mock };
+  type MockRutas3 = { generarRuta?: jest.Mock };
+
+  let mockHttpCall: MockHttp3;
+  let mockConfig: MockConfig3;
+  let mockRepository: MockRepository3;
+  let mockRutasService: MockRutas3;
   let service: PedidosService;
   const productosOrden: ProductoOrden[] = [
     {
@@ -511,5 +529,76 @@ describe('PedidosService - reducirStockProductos', () => {
     mockHttpCall.post.mockRejectedValue(new Error('HTTP error'));
 
     await expect(service.reducirStockProductos(productosOrden)).rejects.toThrow('HTTP error');
+  });
+});
+
+describe('PedidosService - ObtenerPedidosPorCliente', () => {
+  // Using local typed mocks to satisfy lint rules
+  type MockHttp = { post: jest.Mock };
+  type MockConfig = { get: jest.Mock };
+  type MockRepository = { obtenerOrdenesPorCliente: jest.Mock };
+  type MockRutas = { generarRuta: jest.Mock };
+
+  let mockHttpCall: MockHttp;
+  let mockConfig: MockConfig;
+  let mockRepository: MockRepository;
+  let mockRutasService: MockRutas;
+  let service: PedidosService;
+
+  beforeEach(() => {
+    mockHttpCall = { post: jest.fn() };
+    mockConfig = { get: jest.fn() };
+    mockRepository = {
+      obtenerOrdenesPorCliente: jest.fn(),
+    };
+    mockRutasService = { generarRuta: jest.fn() };
+
+    // Cast constructor to accept our minimal mocks (matches earlier pattern)
+    const PedidosServiceCtor = PedidosService as unknown as new (
+      httpCall: MockHttp,
+      config: MockConfig,
+      repo: MockRepository,
+      rutasService: MockRutas
+    ) => PedidosService;
+
+    service = new PedidosServiceCtor(mockHttpCall, mockConfig, mockRepository, mockRutasService);
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('debe retornar órdenes del repositorio cuando existen', async () => {
+    const clienteId = 'cliente-123';
+  const query: ObtenerPedidosQueryDto = { page: 0, limit: 10 };
+    const expected = [{ id: 'o1' }, { id: 'o2' }];
+
+    mockRepository.obtenerOrdenesPorCliente.mockResolvedValueOnce(expected);
+
+    const res = await service.ObtenerPedidosPorCliente(clienteId, query);
+
+    expect(mockRepository.obtenerOrdenesPorCliente).toHaveBeenCalledWith(clienteId, query);
+    expect(res).toBe(expected);
+  });
+
+  it('debe retornar array vacío cuando no hay órdenes', async () => {
+    const clienteId = 'cliente-empty';
+  const query: ObtenerPedidosQueryDto = { page: 1, limit: 5 };
+
+    mockRepository.obtenerOrdenesPorCliente.mockResolvedValueOnce([]);
+
+    const res = await service.ObtenerPedidosPorCliente(clienteId, query);
+
+    expect(mockRepository.obtenerOrdenesPorCliente).toHaveBeenCalledWith(clienteId, query);
+    expect(res).toEqual([]);
+  });
+
+  it('debe propagar errores del repositorio', async () => {
+    const clienteId = 'cliente-err';
+  const query: ObtenerPedidosQueryDto = { page: 0 };
+
+    mockRepository.obtenerOrdenesPorCliente.mockRejectedValueOnce(new Error('DB error'));
+
+    await expect(service.ObtenerPedidosPorCliente(clienteId, query)).rejects.toThrow('DB error');
   });
 });
