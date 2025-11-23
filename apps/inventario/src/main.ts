@@ -22,7 +22,7 @@ async function bootstrap() {
       'https://medi-g8-b0kxqvrx.ue.gateway.dev', // API Gateway
       'http://localhost:4200', // opcional para desarrollo local
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true, // si manejas cookies o headers auth
   });
