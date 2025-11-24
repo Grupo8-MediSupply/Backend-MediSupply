@@ -7,7 +7,6 @@ Repositorio monorepo creado con Nx. Contiene múltiples servicios (apps) y libre
 
 El backend de MediSupply es una plataforma de gestión de la cadena de suministro de insumos médicos basada en microservicios, diseñada para manejar inventario de productos, cumplimiento de pedidos, perfiles de usuarios y logística para la distribución de insumos médicos. El sistema gestiona el ciclo de vida completo de los productos médicos desde los proveedores hasta los clientes, incluyendo gestión de bodegas, optimización de rutas de entrega y programación de visitas.
 
-Este documento ofrece una vista arquitectónica de alto nivel del sistema, describiendo los servicios centrales, sus interacciones y la infraestructura que los soporta. 
 ---
 
 ## Arquitectura de Microservicios
@@ -69,67 +68,6 @@ FeatureModules["Módulos de Funcionalidad<br>(p. ej., VendedoresModule)"]
 
 AppModule --> ConfigModule
 AppModule --> DBModule
-
-## Arquitectura de Despliegue
-
-Los cuatro microservicios se despliegan de forma independiente en Google Cloud Run, con compilaciones incrementales gestionadas por la detección de afectados de Nx.
-
-### Servicios en Cloud Run
-
-```mermaid
-flowchart TD
-
-DB["PostgreSQL + PostGIS"]
-AuthImg["medi-supply-autenticacion:latest"]
-AuthRun["autenticacion-service<br>Auto-scaling"]
-PerfilesImg["medi-supply-perfiles:latest"]
-PerfilesRun["perfiles-service<br>Auto-scaling"]
-InventarioImg["medi-supply-inventario:latest"]
-InventarioRun["inventario-service<br>Auto-scaling"]
-PedidosImg["medi-supply-pedidos:latest"]
-PedidosRun["pedidos-service<br>Auto-scaling"]
-PubSub["Cloud Pub/Sub<br>auditoria-topic<br>orden-creada-topic"]
-Storage["Cloud Storage<br>Video uploads"]
-SecretMgr["Secret Manager<br>JWT keys, DB creds"]
-
-subgraph subGraph3 ["Google Cloud Platform - us-central1"]
-    AuthImg --> AuthRun
-    PerfilesImg --> PerfilesRun
-    InventarioImg --> InventarioRun
-    PedidosImg --> PedidosRun
-    AuthRun --> DB
-    PerfilesRun --> DB
-    InventarioRun --> DB
-    PedidosRun --> DB
-    AuthRun --> PubSub
-    InventarioRun --> PubSub
-    PerfilesRun --> Storage
-    AuthRun -->|"runtime"| SecretMgr
-    PerfilesRun -->|"runtime"| SecretMgr
-    InventarioRun -->|"runtime"| SecretMgr
-    PedidosRun -->|"runtime"| SecretMgr
-
-subgraph subGraph2 ["Servicios de apoyo"]
-    DB
-    PubSub
-    Storage
-    SecretMgr
-end
-
-subgraph subGraph1 ["Artifact Registry"]
-    AuthImg
-    PerfilesImg
-    InventarioImg
-    PedidosImg
-end
-
-subgraph subGraph0 ["Servicios Cloud Run"]
-    AuthRun
-    PerfilesRun
-    InventarioRun
-    PedidosRun
-end
-end
 ```
 
 Cada servicio en Cloud Run:
